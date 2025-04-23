@@ -29,6 +29,7 @@ jobs:
           push: true
           tags: |
             chamso2004/dokploy:latest
+            chamso2004/hawiyat:latest
             chamso2004/dokploy:${{ github.sha }}
           platforms: linux/amd64
           cache-from: type=gha

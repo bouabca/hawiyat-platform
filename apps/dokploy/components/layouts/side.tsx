@@ -365,26 +365,15 @@ const MENU: Menu = {
 	help: [
 		{
 			name: "Documentation",
-			url: "https://docs.dokploy.com/docs/core",
+			url: "https://hawiyat.vercel.app/docs",
 			icon: BookIcon,
 		},
 		{
 			name: "Support",
-			url: "https://discord.gg/2tBnJ3jDJc",
+			url: "https://hawiyat.vercel.app/contact",
 			icon: CircleHelp,
 		},
-		{
-			name: "Sponsor",
-			url: "https://opencollective.com/dokploy",
-			icon: ({ className }) => (
-				<HeartIcon
-					className={cn(
-						"text-red-500 fill-red-600 animate-heartbeat",
-						className,
-					)}
-				/>
-			),
-		},
+		
 	],
 } as const;
 

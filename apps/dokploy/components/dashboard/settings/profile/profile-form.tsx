@@ -109,7 +109,6 @@ export const ProfileForm = () => {
 		await mutateAsync({
 			email: values.email.toLowerCase(),
 			password: values.password || undefined,
-			image: values.image,
 			currentPassword: values.currentPassword || undefined,
 		})
 			.then(async () => {
@@ -208,49 +207,6 @@ export const ProfileForm = () => {
 																{...field}
 																value={field.value || ""}
 															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											<FormField
-												control={form.control}
-												name="image"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>
-															{t("settings.profile.avatar")}
-														</FormLabel>
-														<FormControl>
-															<RadioGroup
-																onValueChange={(e) => {
-																	field.onChange(e);
-																}}
-																defaultValue={field.value}
-																value={field.value}
-																className="flex flex-row flex-wrap gap-2 max-xl:justify-center"
-															>
-																{availableAvatars.map((image) => (
-																	<FormItem key={image}>
-																		<FormLabel className="[&:has([data-state=checked])>img]:border-primary [&:has([data-state=checked])>img]:border-1 [&:has([data-state=checked])>img]:p-px cursor-pointer">
-																			<FormControl>
-																				<RadioGroupItem
-																					value={image}
-																					className="sr-only"
-																				/>
-																			</FormControl>
-
-																			<img
-																				key={image}
-																				src={image}
-																				alt="avatar"
-																				className="h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-transform"
-																			/>
-																		</FormLabel>
-																	</FormItem>
-																))}
-															</RadioGroup>
 														</FormControl>
 														<FormMessage />
 													</FormItem>
