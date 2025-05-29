@@ -16,7 +16,7 @@ export default function Custom404({ statusCode, error }: Props) {
 				<header className="mb-auto flex justify-center z-50 w-full py-4">
 					<nav className="px-4 sm:px-6 lg:px-8" aria-label="Global">
 						<Link
-							href="https://dokploy.com"
+							href="https://hawiyat.vercel.app"
 							target="_blank"
 							className="flex flex-row items-center gap-2"
 						>

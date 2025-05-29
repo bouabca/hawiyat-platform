@@ -14,7 +14,7 @@ export const OnboardingLayout = ({ children }: Props) => {
 			<div className="relative hidden h-full flex-col  p-10 text-primary dark:border-r lg:flex">
 				<div className="absolute inset-0 bg-muted" />
 				<Link
-					href="https://dokploy.com"
+					href="https://hawiyat.vercel.app"
 					className="relative z-20 flex items-center text-lg font-medium gap-4  text-primary"
 				>
 					<Logo className="size-10" />
@@ -35,12 +35,12 @@ export const OnboardingLayout = ({ children }: Props) => {
 				</div>
 				<div className="flex items-center gap-4 justify-center absolute bottom-4 right-4 text-muted-foreground">
 					<Button variant="ghost" size="icon">
-						<Link href="https://github.com/dokploy/dokploy">
+						<Link href="https://hawiyat.vercel.app">
 							<GithubIcon />
 						</Link>
 					</Button>
 					<Button variant="ghost" size="icon">
-						<Link href="https://x.com/getdokploy">
+						<Link href="https://hawiyat.vercel.app">
 							<svg
 								stroke="currentColor"
 								fill="currentColor"
@@ -54,7 +54,7 @@ export const OnboardingLayout = ({ children }: Props) => {
 						</Link>
 					</Button>
 					<Button variant="ghost" size="icon">
-						<Link href="https://discord.com/invite/2tBnJ3jDJc">
+						<Link href="https://hawiyat.vercel.app">
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								viewBox="0 0 48 48"
