@@ -1,6 +1,6 @@
+ #!/bin/bash
 ### !!!! this is for tester branch dofker images only
-
-#!/bin/bash
+### the script run in local mode by default
 install_hawiyat() {
     if [ "$(id -u)" != "0" ]; then
         echo "This script must be run as root" >&2
