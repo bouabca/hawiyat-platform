@@ -51,9 +51,9 @@ import { processTemplate } from "@dokploy/server/templates/processors";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { dump } from "js-yaml";
-import { parse } from "toml";
 import _ from "lodash";
 import { nanoid } from "nanoid";
+import { parse } from "toml";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 
@@ -62,7 +62,7 @@ export const composeRouter = createTRPCRouter({
 		.input(apiCreateCompose)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				if (ctx.user.rol === "member") {
+				if (ctx.user.role === "member") {
 					await checkServiceAccess(
 						ctx.user.id,
 						input.projectId,
@@ -86,7 +86,7 @@ export const composeRouter = createTRPCRouter({
 				}
 				const newService = await createCompose(input);
 
-				if (ctx.user.rol === "member") {
+				if (ctx.user.role === "member") {
 					await addNewService(
 						ctx.user.id,
 						newService.composeId,
@@ -103,7 +103,7 @@ export const composeRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindCompose)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
+			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.composeId,
@@ -137,7 +137,7 @@ export const composeRouter = createTRPCRouter({
 	delete: protectedProcedure
 		.input(apiDeleteCompose)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
+			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.composeId,
@@ -408,7 +408,7 @@ export const composeRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.rol === "member") {
+			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.projectId,
@@ -439,7 +439,15 @@ export const composeRouter = createTRPCRouter({
 			}
 
 			const projectName = slugify(`${project.name} ${input.id}`);
-			const generate = processTemplate(template.config, {
+			const appName = `${projectName}-${generatePassword(6)}`;
+			const config = {
+				...template.config,
+				variables: {
+					APP_NAME: appName,
+					...template.config.variables,
+				},
+			};
+			const generate = processTemplate(config, {
 				serverIp: serverIp,
 				projectName: projectName,
 			});
@@ -451,11 +459,11 @@ export const composeRouter = createTRPCRouter({
 				serverId: input.serverId,
 				name: input.id,
 				sourceType: "raw",
-				appName: `${projectName}-${generatePassword(6)}`,
+				appName: appName,
 				isolatedDeployment: true,
 			});
 
-			if (ctx.user.rol === "member") {
+			if (ctx.user.role === "member") {
 				await addNewService(
 					ctx.user.id,
 					compose.composeId,
@@ -605,7 +613,15 @@ export const composeRouter = createTRPCRouter({
 					});
 				}
 
-				const processedTemplate = processTemplate(config, {
+				const configModified = {
+					...config,
+					variables: {
+						APP_NAME: compose.appName,
+						...config.variables,
+					},
+				};
+
+				const processedTemplate = processTemplate(configModified, {
 					serverIp: serverIp,
 					projectName: compose.appName,
 				});
@@ -675,7 +691,15 @@ export const composeRouter = createTRPCRouter({
 					});
 				}
 
-				const processedTemplate = processTemplate(config, {
+				const configModified = {
+					...config,
+					variables: {
+						APP_NAME: compose.appName,
+						...config.variables,
+					},
+				};
+
+				const processedTemplate = processTemplate(configModified, {
 					serverIp: serverIp,
 					projectName: compose.appName,
 				});

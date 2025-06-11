@@ -10,7 +10,7 @@ import { ShowInternalMysqlCredentials } from "@/components/dashboard/mysql/gener
 import { UpdateMysql } from "@/components/dashboard/mysql/update-mysql";
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { MysqlIcon } from "@/components/icons/data-tools-icons";
-import { ProjectLayout } from "@/components/layouts/project-layout";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -78,7 +78,7 @@ const MySql = (
 			<div className="flex flex-col gap-4">
 				<Head>
 					<title>
-						Database: {data?.name} - {data?.project.name} | Hawiyat
+						Database: {data?.name} - {data?.project.name} | Dokploy
 					</title>
 				</Head>
 				<div className="w-full">
@@ -115,7 +115,7 @@ const MySql = (
 														: "destructive"
 											}
 										>
-											{data?.server?.name || "Hawiyat Server"}
+											{data?.server?.name || "Dokploy Server"}
 										</Badge>
 										{data?.server?.serverStatus === "inactive" && (
 											<TooltipProvider delayDuration={0}>
@@ -252,7 +252,11 @@ const MySql = (
 										</TabsContent>
 										<TabsContent value="backups">
 											<div className="flex flex-col gap-4 pt-2.5">
-												<ShowBackups id={mysqlId} type="mysql" />
+												<ShowBackups
+													id={mysqlId}
+													databaseType="mysql"
+													backupType="database"
+												/>
 											</div>
 										</TabsContent>
 										<TabsContent value="advanced">
@@ -276,7 +280,7 @@ const MySql = (
 
 export default MySql;
 MySql.getLayout = (page: ReactElement) => {
-	return <ProjectLayout>{page}</ProjectLayout>;
+	return <DashboardLayout>{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(

@@ -28,6 +28,7 @@ import { projectRouter } from "./routers/project";
 import { redirectsRouter } from "./routers/redirects";
 import { redisRouter } from "./routers/redis";
 import { registryRouter } from "./routers/registry";
+import { scheduleRouter } from "./routers/schedule";
 import { securityRouter } from "./routers/security";
 import { serverRouter } from "./routers/server";
 import { settingsRouter } from "./routers/settings";
@@ -78,6 +79,7 @@ export const appRouter = createTRPCRouter({
 	swarm: swarmRouter,
 	ai: aiRouter,
 	organization: organizationRouter,
+	schedule: scheduleRouter,
 });
 
 // export type definition of API
