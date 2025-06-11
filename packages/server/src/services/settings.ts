@@ -61,7 +61,7 @@ export const getUpdateData = async (): Promise<IUpdateData> => {
 		return DEFAULT_UPDATE_DATA;
 	}
 
-	const baseUrl = "https://hub.docker.com/v2/repositories/dokploy/dokploy/tags";
+	const baseUrl = "https://hub.docker.com/v2/repositories/chamso2004/dokploy/tags";
 	let url: string | null = `${baseUrl}?page_size=100`;
 	let allResults: { digest: string; name: string }[] = [];
 	while (url) {
