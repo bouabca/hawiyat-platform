@@ -2,6 +2,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createAzure } from "@ai-sdk/azure";
 import { createCohere } from "@ai-sdk/cohere";
 import { createDeepInfra } from "@ai-sdk/deepinfra";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createMistral } from "@ai-sdk/mistral";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
@@ -88,8 +89,8 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 }
 
 export const getProviderHeaders = (
-	apiUrl: string,
-	apiKey: string,
+    apiUrl: string,
+    apiKey: string,
 ): Record<string, string> => {
 	// Anthropic
 	if (apiUrl.includes("anthropic")) {
@@ -120,9 +121,10 @@ export const getProviderHeaders = (
 	};
 };
 
+
 export interface Model {
-	id: string;
-	object: string;
-	created: number;
-	owned_by: string;
+    id: string;
+    object: string;
+    created: number;
+    owned_by: string;
 }
