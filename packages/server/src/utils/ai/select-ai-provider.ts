@@ -2,6 +2,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createAzure } from "@ai-sdk/azure";
 import { createCohere } from "@ai-sdk/cohere";
 import { createDeepInfra } from "@ai-sdk/deepinfra";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createMistral } from "@ai-sdk/mistral";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
@@ -14,12 +15,16 @@ function getProviderName(apiUrl: string) {
 	if (apiUrl.includes("api.cohere.ai")) return "cohere";
 	if (apiUrl.includes("api.perplexity.ai")) return "perplexity";
 	if (apiUrl.includes("api.mistral.ai")) return "mistral";
+	if (apiUrl.includes("generativelanguage.googleapis.com")) return "gemini";
 	if (apiUrl.includes("localhost:11434") || apiUrl.includes("ollama"))
 		return "ollama";
 	if (apiUrl.includes("api.deepinfra.com")) return "deepinfra";
 	return "custom";
 }
-
+// i hope the code works fingers crossed
+// if it works then i am a genius :(
+// and please dont touch it 
+// at least it built this time let's fix teh intergrtion
 export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 	const providerName = getProviderName(config.apiUrl);
 
@@ -57,6 +62,11 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				baseURL: config.apiUrl,
 				apiKey: config.apiKey,
 			});
+		case "gemini":
+			return createGoogleGenerativeAI({
+				apiKey: config.apiKey,
+				baseURL: config.apiUrl, // https://generativelanguage.googleapis.com/v1beta
+			});
 		case "ollama":
 			return createOllama({
 				// optional settings, e.g.
@@ -81,8 +91,8 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 }
 
 export const getProviderHeaders = (
-	apiUrl: string,
-	apiKey: string,
+    apiUrl: string,
+    apiKey: string,
 ): Record<string, string> => {
 	// Anthropic
 	if (apiUrl.includes("anthropic")) {
@@ -99,14 +109,24 @@ export const getProviderHeaders = (
 		};
 	}
 
+	// Gemini/Google AI
+	if (apiUrl.includes("generativelanguage.googleapis.com")) {
+		return {
+			"x-goog-api-key": apiKey,
+			"Content-Type": "application/json",
+		};
+	}
+
 	// Default (OpenAI style)
 	return {
 		Authorization: `Bearer ${apiKey}`,
 	};
 };
+
+
 export interface Model {
-	id: string;
-	object: string;
-	created: number;
-	owned_by: string;
+    id: string;
+    object: string;
+    created: number;
+    owned_by: string;
 }
