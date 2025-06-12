@@ -93,7 +93,7 @@ export const notificationRouter = createTRPCRouter({
 			try {
 				await sendSlackNotification(input, {
 					channel: input.channel,
-					text: "Hi, From Hawiyat 👋",
+					text: "Hi, From Dokploy 👋",
 				});
 				return true;
 			} catch (error) {
@@ -208,7 +208,7 @@ export const notificationRouter = createTRPCRouter({
 
 				await sendDiscordNotification(input, {
 					title: decorate(">", "`🤚` - Test Notification"),
-					description: decorate(">", "Hi, From Hawiyat 👋"),
+					description: decorate(">", "Hi, From Dokploy 👋"),
 					color: 0xf3f7f4,
 				});
 
@@ -267,7 +267,7 @@ export const notificationRouter = createTRPCRouter({
 				await sendEmailNotification(
 					input,
 					"Test Email",
-					"<p>Hi, From Hawiyat 👋</p>",
+					"<p>Hi, From Dokploy 👋</p>",
 				);
 				return true;
 			} catch (error) {
@@ -435,7 +435,7 @@ export const notificationRouter = createTRPCRouter({
 				await sendGotifyNotification(
 					input,
 					"Test Notification",
-					"Hi, From Hawiyat 👋",
+					"Hi, From Dokploy 👋",
 				);
 				return true;
 			} catch (error) {

@@ -24,7 +24,7 @@ jobs:
         if: env.COMMIT_MSG != 'build test'
         run: |
           echo "Commit message does not match. Skipping build."
-          exit 1
+          exit 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2

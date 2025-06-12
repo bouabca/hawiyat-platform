@@ -10,7 +10,7 @@ import { ShowInternalPostgresCredentials } from "@/components/dashboard/postgres
 import { UpdatePostgres } from "@/components/dashboard/postgres/update-postgres";
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { PostgresqlIcon } from "@/components/icons/data-tools-icons";
-import { ProjectLayout } from "@/components/layouts/project-layout";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -77,7 +77,7 @@ const Postgresql = (
 			/>
 			<Head>
 				<title>
-					Database: {data?.name} - {data?.project.name} | Hawiyat
+					Database: {data?.name} - {data?.project.name} | Dokploy
 				</title>
 			</Head>
 			<div className="w-full">
@@ -114,7 +114,7 @@ const Postgresql = (
 													: "destructive"
 										}
 									>
-										{data?.server?.name || "Hawiyat Server"}
+										{data?.server?.name || "Dokploy Server"}
 									</Badge>
 									{data?.server?.serverStatus === "inactive" && (
 										<TooltipProvider delayDuration={0}>
@@ -251,7 +251,11 @@ const Postgresql = (
 									</TabsContent>
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowBackups id={postgresId} type="postgres" />
+											<ShowBackups
+												id={postgresId}
+												databaseType="postgres"
+												backupType="database"
+											/>
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">
@@ -274,7 +278,7 @@ const Postgresql = (
 
 export default Postgresql;
 Postgresql.getLayout = (page: ReactElement) => {
-	return <ProjectLayout>{page}</ProjectLayout>;
+	return <DashboardLayout>{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(

@@ -53,7 +53,7 @@ interface TemplateMetadata {
  * Fetches the list of available templates from meta.json
  */
 export async function fetchTemplatesList(
-	baseUrl = "https://hawiyat-templates-z5yc.vercel.app/",
+	baseUrl = "https://templates.dokploy.com",
 ): Promise<TemplateMetadata[]> {
 	try {
 		const response = await fetch(`${baseUrl}/meta.json`);
