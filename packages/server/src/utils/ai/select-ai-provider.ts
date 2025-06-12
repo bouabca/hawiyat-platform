@@ -6,7 +6,6 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createMistral } from "@ai-sdk/mistral";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOllama } from "ollama-ai-provider";
 
 function getProviderName(apiUrl: string) {
@@ -22,7 +21,9 @@ function getProviderName(apiUrl: string) {
 	if (apiUrl.includes("api.deepinfra.com")) return "deepinfra";
 	return "custom";
 }
-
+// i hope the code works fingers crossed
+// if it works then i am a genius
+// and please dont touch it 
 export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 	const providerName = getProviderName(config.apiUrl);
 
