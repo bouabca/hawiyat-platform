@@ -1,5 +1,7 @@
 import { ShowContainers } from "@/components/dashboard/docker/show/show-containers";
+import { ShowImages } from "@/components/dashboard/docker/show/show-images";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { appRouter } from "@/server/api/root";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
@@ -9,7 +11,20 @@ import type { ReactElement } from "react";
 import superjson from "superjson";
 
 const Dashboard = () => {
-	return <ShowContainers />;
+	return (
+		<Tabs defaultValue="containers" className="w-full">
+			<TabsList className="mb-4">
+				<TabsTrigger value="containers">Containers</TabsTrigger>
+				<TabsTrigger value="images">Images</TabsTrigger>
+			</TabsList>
+			<TabsContent value="containers">
+				<ShowContainers />
+			</TabsContent>
+			<TabsContent value="images">
+				<ShowImages />
+			</TabsContent>
+		</Tabs>
+	);
 };
 
 export default Dashboard;

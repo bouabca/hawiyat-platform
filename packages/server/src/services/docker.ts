@@ -472,3 +472,74 @@ export const getApplicationInfo = async (
 		return appArray;
 	} catch (_error) {}
 };
+
+export const getImages = async (serverId?: string | null) => {
+  try {
+    const command =
+      "docker images --format 'REPOSITORY : {{.Repository}} | TAG : {{.Tag}} | ID : {{.ID}} | CREATED : {{.CreatedSince}} | SIZE : {{.Size}}'";
+    let stdout = "";
+    let stderr = "";
+
+    if (serverId) {
+      const result = await execAsyncRemote(serverId, command);
+      stdout = result.stdout;
+      stderr = result.stderr;
+    } else {
+      const result = await execAsync(command);
+      stdout = result.stdout;
+      stderr = result.stderr;
+    }
+
+    if (stderr) {
+      console.error(`Error: ${stderr}`);
+      return [];
+    }
+
+    const lines = stdout.trim().split("\n");
+
+    const images = lines.map((line) => {
+      const parts = line.split(" | ");
+      const repository = parts[0] ? parts[0].replace("REPOSITORY : ", "").trim() : "No repository";
+      const tag = parts[1] ? parts[1].replace("TAG : ", "").trim() : "No tag";
+      const id = parts[2] ? parts[2].replace("ID : ", "").trim() : "No id";
+      const created = parts[3] ? parts[3].replace("CREATED : ", "").trim() : "No created date";
+      const size = parts[4] ? parts[4].replace("SIZE : ", "").trim() : "No size";
+
+      return {
+        repository,
+        tag,
+        id,
+        created,
+        size,
+      };
+    });
+
+    return images;
+  } catch (error) {
+    console.error("Error fetching Docker images:", error);
+    return [];
+  }
+};
+
+export const removeImage = async (imageId: string, serverId?: string | null) => {
+  try {
+    const command = `docker rmi ${imageId}`;
+
+    if (serverId) {
+      const { stderr } = await execAsyncRemote(serverId, command);
+      if (stderr) {
+        throw new Error(stderr);
+      }
+    } else {
+      const { stderr } = await execAsync(command);
+      if (stderr) {
+        throw new Error(stderr);
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error removing Docker image:", error);
+    throw error;
+  }
+};
