@@ -65,19 +65,20 @@ export const aiRouter = createTRPCRouter({
 		.query(async ({ input }) => {
 			try {
 				const providerName = getProviderName(input.apiUrl);
-				const headers = getProviderHeaders(input.apiUrl, input.apiKey);
-				
-				let modelsUrl: string;
-				
-				// Handle Gemini-specific endpoint
+
+				// Return default Gemini model without fetching
 				if (providerName === "gemini") {
-					modelsUrl = `${input.apiUrl}/models?key=${input.apiKey}`;
-					// For Gemini, we don't need the API key in headers when it's in query params
-					delete headers["x-goog-api-key"];
-				} else {
-					modelsUrl = `${input.apiUrl}/models`;
+					return [{
+						id: "gemini-2.0-flash",
+						object: "model",
+						created: Date.now(),
+						owned_by: "google"
+					}] as Model[];
 				}
 
+				const headers = getProviderHeaders(input.apiUrl, input.apiKey);
+				const modelsUrl = `${input.apiUrl}/models`;
+				
 				const response = await fetch(modelsUrl, { headers });
 
 				if (!response.ok) {
@@ -86,16 +87,6 @@ export const aiRouter = createTRPCRouter({
 				}
 
 				const res = await response.json();
-
-				// Handle Gemini response format
-				if (providerName === "gemini" && res.models) {
-					return res.models.map((model: any) => ({
-						id: model.name?.replace("models/", "") || model.id,
-						object: "model",
-						created: Date.now(),
-						owned_by: "google",
-					})) as Model[];
-				}
 
 				// Handle generic array response
 				if (Array.isArray(res)) {

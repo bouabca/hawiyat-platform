@@ -22,8 +22,9 @@ function getProviderName(apiUrl: string) {
 	return "custom";
 }
 // i hope the code works fingers crossed
-// if it works then i am a genius
+// if it works then i am a genius :(
 // and please dont touch it 
+// at least it built this time let's fix teh intergrtion
 export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 	const providerName = getProviderName(config.apiUrl);
 
@@ -64,7 +65,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 		case "gemini":
 			return createGoogleGenerativeAI({
 				apiKey: config.apiKey,
-				baseURL: config.apiUrl,
+				baseURL: config.apiUrl, // https://generativelanguage.googleapis.com/v1beta
 			});
 		case "ollama":
 			return createOllama({
