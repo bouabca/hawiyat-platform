@@ -5,6 +5,7 @@ import { createDeepInfra } from "@ai-sdk/deepinfra";
 import { createMistral } from "@ai-sdk/mistral";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOllama } from "ollama-ai-provider";
 
 function getProviderName(apiUrl: string) {
@@ -14,6 +15,7 @@ function getProviderName(apiUrl: string) {
 	if (apiUrl.includes("api.cohere.ai")) return "cohere";
 	if (apiUrl.includes("api.perplexity.ai")) return "perplexity";
 	if (apiUrl.includes("api.mistral.ai")) return "mistral";
+	if (apiUrl.includes("generativelanguage.googleapis.com")) return "gemini";
 	if (apiUrl.includes("localhost:11434") || apiUrl.includes("ollama"))
 		return "ollama";
 	if (apiUrl.includes("api.deepinfra.com")) return "deepinfra";
@@ -57,6 +59,11 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				baseURL: config.apiUrl,
 				apiKey: config.apiKey,
 			});
+		case "gemini":
+			return createGoogleGenerativeAI({
+				apiKey: config.apiKey,
+				baseURL: config.apiUrl,
+			});
 		case "ollama":
 			return createOllama({
 				// optional settings, e.g.
@@ -99,11 +106,20 @@ export const getProviderHeaders = (
 		};
 	}
 
+	// Gemini/Google AI
+	if (apiUrl.includes("generativelanguage.googleapis.com")) {
+		return {
+			"x-goog-api-key": apiKey,
+			"Content-Type": "application/json",
+		};
+	}
+
 	// Default (OpenAI style)
 	return {
 		Authorization: `Bearer ${apiKey}`,
 	};
 };
+
 export interface Model {
 	id: string;
 	object: string;

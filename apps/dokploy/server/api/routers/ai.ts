@@ -32,6 +32,20 @@ import {
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+function getProviderName(apiUrl: string): string {
+	if (apiUrl.includes("generativelanguage.googleapis.com")) return "gemini";
+	if (apiUrl.includes("api.openai.com")) return "openai";
+	if (apiUrl.includes("azure.com")) return "azure";
+	if (apiUrl.includes("api.anthropic.com")) return "anthropic";
+	if (apiUrl.includes("api.cohere.ai")) return "cohere";
+	if (apiUrl.includes("api.perplexity.ai")) return "perplexity";
+	if (apiUrl.includes("api.mistral.ai")) return "mistral";
+	if (apiUrl.includes("localhost:11434") || apiUrl.includes("ollama"))
+		return "ollama";
+	if (apiUrl.includes("api.deepinfra.com")) return "deepinfra";
+	return "custom";
+}
+
 export const aiRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(z.object({ aiId: z.string() }))
@@ -50,8 +64,21 @@ export const aiRouter = createTRPCRouter({
 		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string().min(1) }))
 		.query(async ({ input }) => {
 			try {
+				const providerName = getProviderName(input.apiUrl);
 				const headers = getProviderHeaders(input.apiUrl, input.apiKey);
-				const response = await fetch(`${input.apiUrl}/models`, { headers });
+				
+				let modelsUrl: string;
+				
+				// Handle Gemini-specific endpoint
+				if (providerName === "gemini") {
+					modelsUrl = `${input.apiUrl}/models?key=${input.apiKey}`;
+					// For Gemini, we don't need the API key in headers when it's in query params
+					delete headers["x-goog-api-key"];
+				} else {
+					modelsUrl = `${input.apiUrl}/models`;
+				}
+
+				const response = await fetch(modelsUrl, { headers });
 
 				if (!response.ok) {
 					const errorText = await response.text();
@@ -60,6 +87,17 @@ export const aiRouter = createTRPCRouter({
 
 				const res = await response.json();
 
+				// Handle Gemini response format
+				if (providerName === "gemini" && res.models) {
+					return res.models.map((model: any) => ({
+						id: model.name?.replace("models/", "") || model.id,
+						object: "model",
+						created: Date.now(),
+						owned_by: "google",
+					})) as Model[];
+				}
+
+				// Handle generic array response
 				if (Array.isArray(res)) {
 					return res.map((model) => ({
 						id: model.id || model.name,
@@ -69,6 +107,12 @@ export const aiRouter = createTRPCRouter({
 					}));
 				}
 
+				// Handle OpenAI-style response
+				if (res.data) {
+					return res.data as Model[];
+				}
+
+				// Handle other provider-specific formats
 				if (res.models) {
 					return res.models.map((model: any) => ({
 						id: model.id || model.name,
@@ -78,10 +122,7 @@ export const aiRouter = createTRPCRouter({
 					})) as Model[];
 				}
 
-				if (res.data) {
-					return res.data as Model[];
-				}
-
+				// Fallback for unknown response formats
 				const possibleModels =
 					(Object.values(res).find(Array.isArray) as any[]) || [];
 				return possibleModels.map((model) => ({
@@ -97,6 +138,7 @@ export const aiRouter = createTRPCRouter({
 				});
 			}
 		}),
+		
 	create: adminProcedure.input(apiCreateAi).mutation(async ({ ctx, input }) => {
 		return await saveAiSettings(ctx.session.activeOrganizationId, input);
 	}),
@@ -160,6 +202,7 @@ export const aiRouter = createTRPCRouter({
 				});
 			}
 		}),
+		
 	deploy: protectedProcedure
 		.input(deploySuggestionSchema)
 		.mutation(async ({ ctx, input }) => {
