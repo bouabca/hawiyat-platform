@@ -72,18 +72,12 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			enabled: !!destinationId,
 		},
 	);
-	const {
-		mutateAsync: testConnection,
-		isLoading: isLoadingConnection,
-		error: connectionError,
-		isError: isErrorConnection,
-	} = api.destination.testConnection.useMutation();
 
 	const form = useForm<AddDestination>({
 		defaultValues: {
 			provider: "",
 			accessKeyId: "",
-			bucket: "",
+			bucket: destination?.provider === "Local" ? "/etc/hawiyat/backups" : "",
 			name: "",
 			region: "",
 			secretAccessKey: "",
@@ -91,6 +85,10 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		},
 		resolver: zodResolver(addDestination),
 	});
+
+	const provider = form.watch("provider");
+	const isLocalStorage = provider === "Local";
+
 	useEffect(() => {
 		if (destination) {
 			form.reset({
@@ -108,16 +106,18 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 	}, [form, form.reset, form.formState.isSubmitSuccessful, destination]);
 
 	const onSubmit = async (data: AddDestination) => {
-		await mutateAsync({
+		const payload = {
 			provider: data.provider || "",
-			accessKey: data.accessKeyId,
-			bucket: data.bucket,
-			endpoint: data.endpoint,
+			accessKey: isLocalStorage ? "local" : data.accessKeyId,
+			bucket: isLocalStorage ? "/etc/hawiyat/backups" : data.bucket,
+			endpoint: isLocalStorage ? "local" : data.endpoint,
 			name: data.name,
-			region: data.region,
-			secretAccessKey: data.secretAccessKey,
+			region: isLocalStorage ? "local" : data.region,
+			secretAccessKey: isLocalStorage ? "local" : data.secretAccessKey,
 			destinationId: destinationId || "",
-		})
+		};
+
+		await mutateAsync(payload)
 			.then(async () => {
 				toast.success(`Destination ${destinationId ? "Updated" : "Created"}`);
 				await utils.destination.all.invalidate();
@@ -278,163 +278,171 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							}}
 						/>
 
-						<FormField
-							control={form.control}
-							name="accessKeyId"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
-										<FormControl>
-											<Input placeholder={"xcas41dasde"} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
-						/>
-						<FormField
-							control={form.control}
-							name="secretAccessKey"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"asd123asdasw"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="bucket"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"dokploy-bucket"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="region"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"us-east-1"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="endpoint"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
-									<FormControl>
-										<Input
-											placeholder={"https://us.bucket.aws/s3"}
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</form>
-
-					<DialogFooter
-						className={cn(
-							isCloud ? "!flex-col" : "flex-row",
-							"flex w-full  !justify-between pt-3 gap-4",
-						)}
-					>
-						{isCloud ? (
-							<div className="flex flex-col gap-4 border p-2 rounded-lg">
-								<span className="text-sm text-muted-foreground">
-									Select a server to test the destination. If you don't have a
-									server choose the default one.
-								</span>
+						{!isLocalStorage && (
+							<>
 								<FormField
 									control={form.control}
-									name="serverId"
+									name="accessKeyId"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Access Key ID</FormLabel>
+												<FormControl>
+													<Input placeholder="Enter Access Key ID" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+								<FormField
+									control={form.control}
+									name="secretAccessKey"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Server (Optional)</FormLabel>
+											<FormLabel>Secret Access Key</FormLabel>
 											<FormControl>
-												<Select
-													onValueChange={field.onChange}
-													defaultValue={field.value}
-												>
-													<SelectTrigger className="w-full">
-														<SelectValue placeholder="Select a server" />
-													</SelectTrigger>
-													<SelectContent>
-														<SelectGroup>
-															<SelectLabel>Servers</SelectLabel>
-															{servers?.map((server) => (
-																<SelectItem
-																	key={server.serverId}
-																	value={server.serverId}
-																>
-																	{server.name}
-																</SelectItem>
-															))}
-															<SelectItem value={"none"}>None</SelectItem>
-														</SelectGroup>
-													</SelectContent>
-												</Select>
+												<Input
+													type="password"
+													placeholder="Enter Secret Access Key"
+													{...field}
+												/>
 											</FormControl>
-
 											<FormMessage />
 										</FormItem>
 									)}
 								/>
-								<Button
-									type="button"
-									variant={"secondary"}
-									isLoading={isLoadingConnection}
-									onClick={async () => {
-										await handleTestConnection(form.getValues("serverId"));
-									}}
-								>
-									Test Connection
-								</Button>
-							</div>
-						) : (
-							<Button
-								isLoading={isLoadingConnection}
-								type="button"
-								variant="secondary"
-								onClick={async () => {
-									await handleTestConnection();
-								}}
-							>
-								Test connection
-							</Button>
+								<FormField
+									control={form.control}
+									name="bucket"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Bucket</FormLabel>
+											<FormControl>
+												<Input placeholder="Enter bucket name" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="region"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Region</FormLabel>
+											<FormControl>
+												<Input placeholder="Enter region" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="endpoint"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Endpoint</FormLabel>
+											<FormControl>
+												<Input placeholder="Enter endpoint" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
 						)}
 
-						<Button
-							isLoading={isLoading}
-							form="hook-form-destination-add"
-							type="submit"
+						{isLocalStorage && (
+							<div className="flex flex-col gap-2">
+								<p className="text-sm text-muted-foreground">
+									Local storage will use the default backup location at
+									/etc/hawiyat/backups
+								</p>
+							</div>
+						)}
+
+						<DialogFooter
+							className={cn(
+								isCloud ? "!flex-col" : "flex-row",
+								"flex w-full  !justify-between pt-3 gap-4",
+							)}
 						>
-							{destinationId ? "Update" : "Create"}
-						</Button>
-					</DialogFooter>
+							{isCloud ? (
+								<div className="flex flex-col gap-4 border p-2 rounded-lg">
+									<span className="text-sm text-muted-foreground">
+										Select a server to test the destination. If you don't have a
+										server choose the default one.
+									</span>
+									<FormField
+										control={form.control}
+										name="serverId"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Server (Optional)</FormLabel>
+												<FormControl>
+													<Select
+														onValueChange={field.onChange}
+														defaultValue={field.value}
+													>
+														<SelectTrigger className="w-full">
+															<SelectValue placeholder="Select a server" />
+														</SelectTrigger>
+														<SelectContent>
+															<SelectGroup>
+																<SelectLabel>Servers</SelectLabel>
+																{servers?.map((server) => (
+																	<SelectItem
+																		key={server.serverId}
+																		value={server.serverId}
+																	>
+																		{server.name}
+																	</SelectItem>
+																))}
+																<SelectItem value={"none"}>None</SelectItem>
+															</SelectGroup>
+														</SelectContent>
+													</Select>
+												</FormControl>
+
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<Button
+										type="button"
+										variant={"secondary"}
+										isLoading={isLoadingConnection}
+										onClick={async () => {
+											await handleTestConnection(form.getValues("serverId"));
+										}}
+									>
+										Test Connection
+									</Button>
+								</div>
+							) : (
+								<Button
+									isLoading={isLoadingConnection}
+									type="button"
+									variant="secondary"
+									onClick={async () => {
+										await handleTestConnection();
+									}}
+								>
+									Test connection
+								</Button>
+							)}
+
+							<Button
+								isLoading={isLoading}
+								form="hook-form-destination-add"
+								type="submit"
+							>
+								{destinationId ? "Update" : "Create"}
+							</Button>
+						</DialogFooter>
+					</form>
 				</Form>
 			</DialogContent>
 		</Dialog>

@@ -59,6 +59,10 @@ export const normalizeS3Path = (prefix: string) => {
 };
 
 export const getS3Credentials = (destination: Destination) => {
+	if (destination.provider === "Local") {
+		return ["--local"]; // Use rclone's local backend
+	}
+
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
 	const rcloneFlags = [

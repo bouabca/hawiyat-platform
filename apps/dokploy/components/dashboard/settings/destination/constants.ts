@@ -3,6 +3,10 @@ export const S3_PROVIDERS: Array<{
 	name: string;
 }> = [
 	{
+		key: "Local",
+		name: "Local Storage Backup",
+	},
+	{
 		key: "AWS",
 		name: "Amazon Web Services (AWS) S3",
 	},
