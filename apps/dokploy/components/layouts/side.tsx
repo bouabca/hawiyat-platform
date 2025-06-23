@@ -147,6 +147,12 @@ const MENU: Menu = {
 	home: [
 		{
 			isSingle: true,
+			title: "summary",
+			url: "/dashboard/summary",
+			icon: HeartIcon,
+		},
+		{
+			isSingle: true,
 			title: "Projects",
 			url: "/dashboard/projects",
 			icon: Folder,
