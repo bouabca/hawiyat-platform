@@ -9,22 +9,12 @@ on:
 
 jobs:
   build-and-push:
+    if: contains(github.event.head_commit.message, 'build test')
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Check commit message
-        id: check_message
-        run: |
-          echo "COMMIT_MSG=$(git log -1 --pretty=%B)" >> $GITHUB_ENV
-
-      - name: Exit if not matching commit message
-        if: env.COMMIT_MSG != 'build test'
-        run: |
-          echo "Commit message does not match. Skipping build."
-          exit 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
