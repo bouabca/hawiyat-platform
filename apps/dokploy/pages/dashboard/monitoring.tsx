@@ -26,7 +26,7 @@ const Dashboard = () => {
 			{/* <AlertBlock>
 				You are watching the <strong>Free</strong> plan.{" "}
 				<a
-					href="https://dokploy.com#pricing"
+					href="https://hawiyat.org#pricing"
 					target="_blank"
 					className="underline"
 					rel="noreferrer"
