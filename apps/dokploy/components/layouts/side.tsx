@@ -18,6 +18,7 @@ import {
 	GalleryVerticalEnd,
 	GitBranch,
 	HeartIcon,
+	HomeIcon,
 	KeyRound,
 	Loader2,
 	type LucideIcon,
@@ -147,9 +148,9 @@ const MENU: Menu = {
 	home: [
 		{
 			isSingle: true,
-			title: "summary",
+			title: "Home",
 			url: "/dashboard/summary",
-			icon: HeartIcon,
+			icon: HomeIcon,
 		},
 		{
 			isSingle: true,
