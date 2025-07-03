@@ -2,17 +2,7 @@ import { useRouter } from "next/router";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Folder,
   Plus,
@@ -22,15 +12,13 @@ import {
   Settings,
   Bell,
   BookOpen,
-  Eye,
-  EyeOff,
   ArrowRight,
   Loader2,
   UserPlus,
   Server
 } from "lucide-react";
 
-import type { ReactElement } from "react";
+
 
 // Types
 const CARD_CONFIG = {
@@ -307,11 +295,18 @@ export const Summary = () => {
 
   const totalProjects = projects?.length || 0;
   const totalServices = services?.length || 0;
-  const runningServices = services?.filter((s: any) => s.status === "running" || s.applicationStatus === "running").length || 0;
-  const failedServices = services?.filter((s: any) => s.status === "failed" || s.applicationStatus === "failed").length || 0;
-  const topServices = services?.slice(0, 5) || [];
-  const mostActiveProjects = projects?.slice(0, 5) || [];
-  const unreadCount = notifications?.filter((n: any) => !n.read)?.length || 0;
+  
+  // Fix service status logic - check actual status values from backend
+  const runningServices = services?.filter((s: any) => {
+    const status = s.applicationStatus || s.status || '';
+    return status === "running" || status === "active" || status === "started";
+  }).length || 0;
+  
+  const failedServices = services?.filter((s: any) => {
+    const status = s.applicationStatus || s.status || '';
+    return status === "failed" || status === "error" || status === "stopped";
+  }).length || 0;
+  const mostActiveProjects = projects?.slice(0, 8) || [];
 
   const filteredNotifications = useMemo(() => {
     if (activityFilter === "all") return notifications || [];
@@ -340,13 +335,6 @@ export const Summary = () => {
   }, [visibleCards]);
 
   // Event handlers
-  const markAllAsRead = useCallback(() => {
-    console.log("Mark all notifications as read");
-  }, []);
-
-  const handleToggleCard = useCallback((key: CardKey) => {
-    setVisibleCards(prev => ({ ...prev, [key]: !prev[key] }));
-  }, []);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -364,8 +352,6 @@ export const Summary = () => {
       router.push(`/dashboard/compose/${notification.deploymentId}`);
     }
   }, [router]);
-
-  const visibleCount = Object.values(visibleCards).filter(Boolean).length;
 
 
 
@@ -492,157 +478,6 @@ export const Summary = () => {
           </div>
         </div>
       )}
-
-      {/* System Stats & Quick Stats */}
-      {visibleCards.stats && (
-        <div className="space-y-8">
-          {/* System Stats */}
-          <div className="group relative overflow-hidden rounded-3xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer" onClick={() => router.push('/dashboard/monitoring')}>
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <div className="relative p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 rounded-2xl bg-primary/10">
-                  <Activity className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-foreground">System Performance</h3>
-                  <p className="text-muted-foreground">Real-time system metrics</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <StatCircle value={stats?.cpu ?? 0} label="CPU" />
-                <StatCircle value={stats?.memory ?? 0} label="Memory" />
-                <StatCircle value={stats?.disk ?? 0} label="Disk" />
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard 
-              icon={Folder} 
-              value={totalProjects} 
-              label="Total Projects" 
-              color="primary"
-            />
-            <StatCard 
-              icon={Server} 
-              value={totalServices} 
-              label="Active Services" 
-              color="success"
-            />
-            <StatCard 
-              icon={Rocket} 
-              value={runningServices} 
-              label="Running Services" 
-              color="success"
-            />
-            <StatCard 
-              icon={Rocket} 
-              value={failedServices} 
-              label="Failed Services" 
-              color="danger"
-            />
-          </div>
-        </div>
-      )}
-        <div className="group relative overflow-hidden rounded-3xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-lg">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          <div className="relative p-8">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 rounded-2xl bg-primary/10">
-                <Rocket className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-foreground">Quick Actions</h3>
-                <p className="text-muted-foreground">Access your most used features</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-              <Button
-                variant="outline"
-                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
-                onClick={() => router.push('/dashboard/projects')}
-              >
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <Folder className="h-5 w-5 text-primary" />
-                </div>
-                <span className="text-xs font-medium">Projects</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
-                onClick={() => router.push('/dashboard/projects')}
-              >
-                <div className="p-2 rounded-xl bg-green-500/10">
-                  <Plus className="h-5 w-5 text-green-500" />
-                </div>
-                <span className="text-xs font-medium">New Project</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
-                onClick={() => router.push('/dashboard/compose')}
-              >
-                <div className="p-2 rounded-xl bg-blue-500/10">
-                  <Rocket className="h-5 w-5 text-blue-500" />
-                </div>
-                <span className="text-xs font-medium">Deploy Stack</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
-                onClick={() => router.push('/dashboard/monitoring')}
-              >
-                <div className="p-2 rounded-xl bg-purple-500/10">
-                  <Activity className="h-5 w-5 text-purple-500" />
-                </div>
-                <span className="text-xs font-medium">Monitoring</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
-                onClick={() => router.push('/dashboard/swarm')}
-              >
-                <div className="p-2 rounded-xl bg-orange-500/10">
-                  <Users className="h-5 w-5 text-orange-500" />
-                </div>
-                <span className="text-xs font-medium">Swarm</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
-                onClick={() => router.push('/dashboard/settings')}
-              >
-                <div className="p-2 rounded-xl bg-gray-500/10">
-                  <Settings className="h-5 w-5 text-gray-500" />
-                </div>
-                <span className="text-xs font-medium">Settings</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
-                onClick={() => router.push('/dashboard/settings/users')}
-              >
-                <div className="p-2 rounded-xl bg-indigo-500/10">
-                  <UserPlus className="h-5 w-5 text-indigo-500" />
-                </div>
-                <span className="text-xs font-medium">Add Users</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
-                onClick={() => window.open('https://hawiyat.org/docs', '_blank')}
-              >
-                <div className="p-2 rounded-xl bg-teal-500/10">
-                  <BookOpen className="h-5 w-5 text-teal-500" />
-                </div>
-                <span className="text-xs font-medium">Documentation</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-     
 
       {/* System Stats & Quick Stats */}
       {visibleCards.stats && (
