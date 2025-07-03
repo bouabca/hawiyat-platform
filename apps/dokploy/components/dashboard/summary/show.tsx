@@ -110,15 +110,15 @@ function StatCircle({ value, label }: { value: number; label: string }) {
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
       <div className="relative">
         <svg height={radius * 2} width={radius * 2} className="drop-shadow-sm">
-          <circle
-            stroke="hsl(var(--muted))"
-            fill="transparent"
-            strokeWidth={stroke}
-            r={normalizedRadius}
-            cx={radius}
-            cy={radius}
-            className="opacity-30"
-          />
+                  <circle
+          stroke="hsl(var(--border))"
+          fill="transparent"
+          strokeWidth={stroke}
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+          className="opacity-60"
+        />
           <circle
             stroke={getColor(label)}
             fill="transparent"
@@ -180,6 +180,7 @@ export const Summary = () => {
   
   // API queries
   const { data: projects, isLoading: loadingProjects, refetch: refetchProjects } = api.project.all.useQuery();
+  
   const { data: notifications, isLoading: loadingNotifications, refetch: refetchNotifications } = api.notification.all.useQuery();
   const { data: user } = api.user.get.useQuery();
   const { data: org } = api.organization.one.useQuery(
@@ -193,16 +194,121 @@ export const Summary = () => {
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Computed values - Replace deployments with services
+  // Computed values - Extract all services from projects
   const services = useMemo(() => {
     if (!projects) return [];
-    return projects.flatMap((p: any) => (p.compose || []).flatMap((c: any) => c.services || []));
+    const allServices: Array<{
+      projectId: string;
+      type: string;
+      serviceType: string;
+      name: string;
+      status: string;
+      [key: string]: any;
+    }> = [];
+    
+    projects.forEach((project: any) => {
+      // Applications
+      if (project.applications) {
+        project.applications.forEach((app: any) => {
+          allServices.push({
+            ...app,
+            projectId: project.projectId,
+            type: 'application',
+            serviceType: 'application',
+            name: app.appName || app.name,
+            status: app.applicationStatus || 'active'
+          });
+        });
+      }
+      
+      // Databases
+      if (project.postgres) {
+        project.postgres.forEach((db: any) => {
+          allServices.push({
+            ...db,
+            projectId: project.projectId,
+            type: 'database',
+            serviceType: 'postgres',
+            name: db.appName || db.name,
+            status: db.status || 'active'
+          });
+        });
+      }
+      
+      if (project.mysql) {
+        project.mysql.forEach((db: any) => {
+          allServices.push({
+            ...db,
+            projectId: project.projectId,
+            type: 'database',
+            serviceType: 'mysql',
+            name: db.appName || db.name,
+            status: db.status || 'active'
+          });
+        });
+      }
+      
+      if (project.mariadb) {
+        project.mariadb.forEach((db: any) => {
+          allServices.push({
+            ...db,
+            projectId: project.projectId,
+            type: 'database',
+            serviceType: 'mariadb',
+            name: db.appName || db.name,
+            status: db.status || 'active'
+          });
+        });
+      }
+      
+      if (project.mongo) {
+        project.mongo.forEach((db: any) => {
+          allServices.push({
+            ...db,
+            projectId: project.projectId,
+            type: 'database',
+            serviceType: 'mongo',
+            name: db.appName || db.name,
+            status: db.status || 'active'
+          });
+        });
+      }
+      
+      if (project.redis) {
+        project.redis.forEach((db: any) => {
+          allServices.push({
+            ...db,
+            projectId: project.projectId,
+            type: 'database',
+            serviceType: 'redis',
+            name: db.appName || db.name,
+            status: db.status || 'active'
+          });
+        });
+      }
+      
+      // Compose services
+      if (project.compose) {
+        project.compose.forEach((compose: any) => {
+          allServices.push({
+            ...compose,
+            projectId: project.projectId,
+            type: 'compose',
+            serviceType: 'compose',
+            name: compose.appName || compose.name,
+            status: compose.status || 'active'
+          });
+        });
+      }
+    });
+    
+    return allServices;
   }, [projects]);
 
   const totalProjects = projects?.length || 0;
   const totalServices = services?.length || 0;
-  const runningServices = services?.filter((s: any) => s.status === "running").length || 0;
-  const failedServices = services?.filter((s: any) => s.status === "failed").length || 0;
+  const runningServices = services?.filter((s: any) => s.status === "running" || s.applicationStatus === "running").length || 0;
+  const failedServices = services?.filter((s: any) => s.status === "failed" || s.applicationStatus === "failed").length || 0;
   const topServices = services?.slice(0, 5) || [];
   const mostActiveProjects = projects?.slice(0, 5) || [];
   const unreadCount = notifications?.filter((n: any) => !n.read)?.length || 0;
@@ -275,115 +381,17 @@ export const Summary = () => {
             {org?.name ? `${org.name} • ` : ''}Dashboard Overview
           </p>
         </div>
-        {unreadCount > 0 && (
-          <Button variant="outline" size="sm" onClick={markAllAsRead} className="shadow-lg hover:shadow-xl transition-shadow">
-            <Bell className="w-4 h-4 mr-2" />
-            Mark all as read ({unreadCount})
-          </Button>
-        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="shadow-lg hover:shadow-xl transition-all"
+        >
+          <Loader2 className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh'}
+        </Button>
       </div>
-
-      {/* Dashboard Controls */}
-      <div className="flex items-center justify-between gap-4 p-6 bg-gradient-to-r from-card/80 via-card/60 to-card/80 rounded-3xl border border-border/50 backdrop-blur-xl shadow-lg">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-primary/10">
-              <Eye className="w-5 h-5 text-primary" />
-            </div>
-            <span className="text-sm font-semibold text-foreground">Dashboard Sections</span>
-          </div>
-          <div className="relative">
-            <Button variant="outline" size="sm" className="h-10 px-4 rounded-xl shadow-md hover:shadow-lg transition-all">
-              <Settings className="w-4 h-4 mr-2" />
-              Configure
-              <Badge variant="secondary" className="ml-2 h-6 px-2 text-xs">
-                {visibleCount}/{CARD_KEYS.length}
-              </Badge>
-            </Button>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Active:</span>
-            <div className="flex items-center gap-2">
-              {CARD_KEYS.filter(key => visibleCards[key]).slice(0, 3).map(key => (
-                <Badge key={key} variant="outline" className="h-6 px-3 text-xs rounded-full shadow-sm border-primary/20">
-                  {CARD_CONFIG[key].icon} {CARD_CONFIG[key].name}
-                </Badge>
-              ))}
-              {visibleCount > 3 && (
-                <Badge variant="outline" className="h-6 px-3 text-xs rounded-full shadow-sm">
-                  +{visibleCount - 3} more
-                </Badge>
-              )}
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="h-10 px-4 rounded-xl shadow-md hover:shadow-lg transition-all"
-          >
-            <Loader2 className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
-          </Button>
-        </div>
-      </div>
-
-      {/* System Stats & Quick Stats */}
-      {visibleCards.stats && (
-        <div className="space-y-8">
-          {/* System Stats */}
-          <div className="group relative overflow-hidden rounded-3xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer" onClick={() => router.push('/dashboard/monitoring')}>
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <div className="relative p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 rounded-2xl bg-primary/10">
-                  <Activity className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-foreground">System Performance</h3>
-                  <p className="text-muted-foreground">Real-time system metrics</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <StatCircle value={stats?.cpu ?? 0} label="CPU" />
-                <StatCircle value={stats?.memory ?? 0} label="Memory" />
-                <StatCircle value={stats?.disk ?? 0} label="Disk" />
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard 
-              icon={Folder} 
-              value={totalProjects} 
-              label="Total Projects" 
-              color="primary"
-            />
-            <StatCard 
-              icon={Server} 
-              value={totalServices} 
-              label="Active Services" 
-              color="success"
-            />
-            <StatCard 
-              icon={Rocket} 
-              value={runningServices} 
-              label="Running Services" 
-              color="success"
-            />
-            <StatCard 
-              icon={Rocket} 
-              value={failedServices} 
-              label="Failed Services" 
-              color="danger"
-            />
-          </div>
-        </div>
-      )}
 
       {/* Quick Actions */}
       {visibleCards.quickActions && (
@@ -485,92 +493,387 @@ export const Summary = () => {
         </div>
       )}
 
-      {/* Top Services & Projects */}
-      {visibleCards.topServices && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Services Card */}
-          <div className="group relative overflow-hidden rounded-3xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-lg">
+      {/* System Stats & Quick Stats */}
+      {visibleCards.stats && (
+        <div className="space-y-8">
+          {/* System Stats */}
+          <div className="group relative overflow-hidden rounded-3xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer" onClick={() => router.push('/dashboard/monitoring')}>
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             <div className="relative p-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-3 rounded-2xl bg-primary/10">
-                  <Server className="h-6 w-6 text-primary" />
+                  <Activity className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-foreground">Top Services</h3>
-                  <p className="text-muted-foreground">Most active services</p>
+                  <h3 className="text-xl font-bold text-foreground">System Performance</h3>
+                  <p className="text-muted-foreground">Real-time system metrics</p>
                 </div>
               </div>
-              <div className="space-y-3">
-                {topServices.slice(0, 5).map((service: any, index: number) => (
-                  <div
-                    key={service.serviceId || index}
-                    className="group/item flex items-center justify-between p-4 rounded-2xl bg-muted/20 hover:bg-muted/40 transition-all duration-300 cursor-pointer border border-transparent hover:border-primary/20"
-                    onClick={() => service.serviceId && router.push(`/dashboard/services/${service.serviceId}`)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-primary/10">
-                        <Server className="h-4 w-4 text-primary" />
-                      </div>
-                      <div>
-                        <span className="font-semibold text-foreground">{service.name || `Service ${index + 1}`}</span>
-                        <div className="text-xs text-muted-foreground">Service ID: {service.serviceId || 'N/A'}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {service.status || 'active'}
-                      </Badge>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover/item:text-primary transition-colors" />
-                    </div>
-                  </div>
-                ))}
-                {topServices.length === 0 && (
-                  <div className="text-center py-8">
-                    <Server className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-                    <p className="text-muted-foreground">No services found</p>
-                  </div>
-                )}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <StatCircle value={stats?.cpu ?? 0} label="CPU" />
+                <StatCircle value={stats?.memory ?? 0} label="Memory" />
+                <StatCircle value={stats?.disk ?? 0} label="Disk" />
               </div>
             </div>
           </div>
-          
-          {/* Projects Card */}
-          <div className="group relative overflow-hidden rounded-3xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-lg">
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard 
+              icon={Folder} 
+              value={totalProjects} 
+              label="Total Projects" 
+              color="primary"
+            />
+            <StatCard 
+              icon={Server} 
+              value={totalServices} 
+              label="Active Services" 
+              color="success"
+            />
+            <StatCard 
+              icon={Rocket} 
+              value={runningServices} 
+              label="Running Services" 
+              color="success"
+            />
+            <StatCard 
+              icon={Rocket} 
+              value={failedServices} 
+              label="Failed Services" 
+              color="danger"
+            />
+          </div>
+        </div>
+      )}
+        <div className="group relative overflow-hidden rounded-3xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-lg">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="relative p-8">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="p-3 rounded-2xl bg-primary/10">
+                <Rocket className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-foreground">Quick Actions</h3>
+                <p className="text-muted-foreground">Access your most used features</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+              <Button
+                variant="outline"
+                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
+                onClick={() => router.push('/dashboard/projects')}
+              >
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Folder className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-xs font-medium">Projects</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
+                onClick={() => router.push('/dashboard/projects')}
+              >
+                <div className="p-2 rounded-xl bg-green-500/10">
+                  <Plus className="h-5 w-5 text-green-500" />
+                </div>
+                <span className="text-xs font-medium">New Project</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
+                onClick={() => router.push('/dashboard/compose')}
+              >
+                <div className="p-2 rounded-xl bg-blue-500/10">
+                  <Rocket className="h-5 w-5 text-blue-500" />
+                </div>
+                <span className="text-xs font-medium">Deploy Stack</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
+                onClick={() => router.push('/dashboard/monitoring')}
+              >
+                <div className="p-2 rounded-xl bg-purple-500/10">
+                  <Activity className="h-5 w-5 text-purple-500" />
+                </div>
+                <span className="text-xs font-medium">Monitoring</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
+                onClick={() => router.push('/dashboard/swarm')}
+              >
+                <div className="p-2 rounded-xl bg-orange-500/10">
+                  <Users className="h-5 w-5 text-orange-500" />
+                </div>
+                <span className="text-xs font-medium">Swarm</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
+                onClick={() => router.push('/dashboard/settings')}
+              >
+                <div className="p-2 rounded-xl bg-gray-500/10">
+                  <Settings className="h-5 w-5 text-gray-500" />
+                </div>
+                <span className="text-xs font-medium">Settings</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
+                onClick={() => router.push('/dashboard/settings/users')}
+              >
+                <div className="p-2 rounded-xl bg-indigo-500/10">
+                  <UserPlus className="h-5 w-5 text-indigo-500" />
+                </div>
+                <span className="text-xs font-medium">Add Users</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
+                onClick={() => window.open('https://hawiyat.org/docs', '_blank')}
+              >
+                <div className="p-2 rounded-xl bg-teal-500/10">
+                  <BookOpen className="h-5 w-5 text-teal-500" />
+                </div>
+                <span className="text-xs font-medium">Documentation</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+     
+
+      {/* System Stats & Quick Stats */}
+      {visibleCards.stats && (
+        <div className="space-y-8">
+          {/* System Stats */}
+          <div className="group relative overflow-hidden rounded-3xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer" onClick={() => router.push('/dashboard/monitoring')}>
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             <div className="relative p-8">
               <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 rounded-2xl bg-primary/10">
+                  <Activity className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-foreground">System Performance</h3>
+                  <p className="text-muted-foreground">Real-time system metrics</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <StatCircle value={stats?.cpu ?? 0} label="CPU" />
+                <StatCircle value={stats?.memory ?? 0} label="Memory" />
+                <StatCircle value={stats?.disk ?? 0} label="Disk" />
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard 
+              icon={Folder} 
+              value={totalProjects} 
+              label="Total Projects" 
+              color="primary"
+            />
+            <StatCard 
+              icon={Server} 
+              value={totalServices} 
+              label="Active Services" 
+              color="success"
+            />
+            <StatCard 
+              icon={Rocket} 
+              value={runningServices} 
+              label="Running Services" 
+              color="success"
+            />
+            <StatCard 
+              icon={Rocket} 
+              value={failedServices} 
+              label="Failed Services" 
+              color="danger"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Projects & Services Overview */}
+      {visibleCards.topServices && (
+        <div className="space-y-8">
+          {/* Projects with Services */}
+          <div className="group relative overflow-hidden rounded-3xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-lg">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative p-8">
+              <div className="flex items-center gap-3 mb-8">
                 <div className="p-3 rounded-2xl bg-primary/10">
                   <Folder className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-foreground">Most Active Projects</h3>
-                  <p className="text-muted-foreground">Your top projects</p>
+                  <h3 className="text-xl font-bold text-foreground">Projects & Services Overview</h3>
+                  <p className="text-muted-foreground">Complete project ecosystem with all service relationships</p>
                 </div>
               </div>
-              <div className="space-y-3">
-                {mostActiveProjects.slice(0, 5).map((project: any) => (
-                  <div
-                    key={project.projectId}
-                    className="group/item flex items-center justify-between p-4 rounded-2xl bg-muted/20 hover:bg-muted/40 transition-all duration-300 cursor-pointer border border-transparent hover:border-primary/20"
-                    onClick={() => router.push(`/dashboard/project/${project.projectId}`)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-primary/10">
-                        <Folder className="h-4 w-4 text-primary" />
+              
+              <div className="space-y-6 max-h-96 overflow-y-auto pr-2">
+                {mostActiveProjects.slice(0, 8).map((project: any) => {
+                  const projectServices = services.filter((s: any) => s.projectId === project.projectId);
+                  const applications = projectServices.filter((s: any) => s.type === 'application');
+                  const databases = projectServices.filter((s: any) => s.type === 'database');
+                  const composeServices = projectServices.filter((s: any) => s.type === 'compose');
+                  const otherServices = projectServices.filter((s: any) => !applications.includes(s) && !databases.includes(s) && !composeServices.includes(s));
+                  
+                  return (
+                    <div
+                      key={project.projectId}
+                      className="group/item border border-border/50 rounded-2xl p-6 bg-muted/10 hover:bg-muted/20 transition-all duration-300 cursor-pointer hover:border-primary/30"
+                      onClick={() => router.push(`/dashboard/project/${project.projectId}`)}
+                    >
+                      {/* Project Header */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl bg-primary/10">
+                            <Folder className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-foreground text-lg">{project.name}</h4>
+                            <p className="text-sm text-muted-foreground">ID: {project.projectId}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {projectServices.length} Services
+                          </Badge>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover/item:text-primary transition-colors" />
+                        </div>
                       </div>
-                      <div>
-                        <span className="font-semibold text-foreground">{project.name}</span>
-                        <div className="text-xs text-muted-foreground">Project ID: {project.projectId}</div>
+                      
+                      {/* Services Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {/* Applications */}
+                        {applications.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1 rounded-lg bg-blue-500/10">
+                                <Rocket className="h-3 w-3 text-blue-500" />
+                              </div>
+                              <span className="text-xs font-semibold text-blue-600">Applications</span>
+                            </div>
+                            <div className="space-y-1">
+                              {applications.slice(0, 3).map((app: any, idx: number) => (
+                                <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                                  <span className="text-xs text-foreground truncate">{app.name || `App ${idx + 1}`}</span>
+                                  <Badge variant="outline" className="text-xs h-4 px-1">
+                                    {app.applicationStatus || app.status || 'active'}
+                                  </Badge>
+                                </div>
+                              ))}
+                              {applications.length > 3 && (
+                                <div className="text-xs text-muted-foreground text-center">
+                                  +{applications.length - 3} more
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Databases */}
+                        {databases.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1 rounded-lg bg-green-500/10">
+                                <Server className="h-3 w-3 text-green-500" />
+                              </div>
+                              <span className="text-xs font-semibold text-green-600">Databases</span>
+                            </div>
+                            <div className="space-y-1">
+                              {databases.slice(0, 3).map((db: any, idx: number) => (
+                                <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-green-500/5 border border-green-500/10">
+                                  <span className="text-xs text-foreground truncate">{db.name || `DB ${idx + 1}`}</span>
+                                  <Badge variant="outline" className="text-xs h-4 px-1">
+                                    {db.status || 'active'}
+                                  </Badge>
+                                </div>
+                              ))}
+                              {databases.length > 3 && (
+                                <div className="text-xs text-muted-foreground text-center">
+                                  +{databases.length - 3} more
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Compose Services */}
+                        {composeServices.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1 rounded-lg bg-purple-500/10">
+                                <Settings className="h-3 w-3 text-purple-500" />
+                              </div>
+                              <span className="text-xs font-semibold text-purple-600">Compose</span>
+                            </div>
+                            <div className="space-y-1">
+                              {composeServices.slice(0, 3).map((compose: any, idx: number) => (
+                                <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-purple-500/5 border border-purple-500/10">
+                                  <span className="text-xs text-foreground truncate">{compose.name || `Compose ${idx + 1}`}</span>
+                                  <Badge variant="outline" className="text-xs h-4 px-1">
+                                    {compose.status || 'active'}
+                                  </Badge>
+                                </div>
+                              ))}
+                              {composeServices.length > 3 && (
+                                <div className="text-xs text-muted-foreground text-center">
+                                  +{composeServices.length - 3} more
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Other Services */}
+                        {otherServices.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1 rounded-lg bg-orange-500/10">
+                                <Server className="h-3 w-3 text-orange-500" />
+                              </div>
+                              <span className="text-xs font-semibold text-orange-600">Other</span>
+                            </div>
+                            <div className="space-y-1">
+                              {otherServices.slice(0, 3).map((other: any, idx: number) => (
+                                <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-orange-500/5 border border-orange-500/10">
+                                  <span className="text-xs text-foreground truncate">{other.name || `Service ${idx + 1}`}</span>
+                                  <Badge variant="outline" className="text-xs h-4 px-1">
+                                    {other.status || 'active'}
+                                  </Badge>
+                                </div>
+                              ))}
+                              {otherServices.length > 3 && (
+                                <div className="text-xs text-muted-foreground text-center">
+                                  +{otherServices.length - 3} more
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
+                      
+                      {projectServices.length === 0 && (
+                        <div className="text-center py-4">
+                          <Server className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">No services configured</p>
+                        </div>
+                      )}
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover/item:text-primary transition-colors" />
-                  </div>
-                ))}
+                  );
+                })}
+                
                 {mostActiveProjects.length === 0 && (
-                  <div className="text-center py-8">
-                    <Folder className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-                    <p className="text-muted-foreground">No projects found</p>
+                  <div className="text-center py-12">
+                    <Folder className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
+                    <p className="text-muted-foreground text-lg">No projects found</p>
+                    <p className="text-sm text-muted-foreground/70 mt-2">Create your first project to get started</p>
                   </div>
                 )}
               </div>
