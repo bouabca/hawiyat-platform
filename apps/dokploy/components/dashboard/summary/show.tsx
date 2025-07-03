@@ -26,27 +26,17 @@ import {
   EyeOff,
   ArrowRight,
   Loader2,
-  UserPlus
+  UserPlus,
+  Server
 } from "lucide-react";
 
-import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
-import { ShowPaidMonitoring } from "@/components/dashboard/monitoring/paid/servers/show-paid-monitoring";
-import { WebServer } from "@/components/dashboard/settings/web-server";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { IS_CLOUD } from "@dokploy/server/constants";
-import { validateRequest } from "@dokploy/server/lib/auth";
-import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
-
-const BASE_URL = "http://localhost:3001/metrics";
-
-const DEFAULT_TOKEN = "metrics";
 
 // Types
 const CARD_CONFIG = {
-  stats: { name: "Quick Stats", icon: "📊" },
+  stats: { name: "System Stats", icon: "📊" },
   quickActions: { name: "Quick Actions", icon: "⚡" },
-  topDeployments: { name: "Top Deployments", icon: "🚀" },
+  topServices: { name: "Top Services", icon: "🛠️" },
   projects: { name: "Projects", icon: "📁" },
   recentActivity: { name: "Recent Activity", icon: "🔔" },
   userActions: { name: "User Actions", icon: "👤" },
@@ -55,49 +45,110 @@ const CARD_CONFIG = {
 type CardKey = keyof typeof CARD_CONFIG;
 const CARD_KEYS = Object.keys(CARD_CONFIG) as CardKey[];
 
+// Modern Elegant Stats Display
+function StatCard({ icon: Icon, value, label, trend, color = "primary" }: { 
+  icon: any; 
+  value: string | number; 
+  label: string; 
+  trend?: string;
+  color?: "primary" | "success" | "warning" | "danger";
+}) {
+  const colorClasses = {
+    primary: "text-primary bg-primary/10 border-primary/20",
+    success: "text-green-600 bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800",
+    warning: "text-yellow-600 bg-yellow-50 border-yellow-200 dark:bg-yellow-950 dark:border-yellow-800",
+    danger: "text-red-600 bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800"
+  };
+
+  return (
+    <div className="group relative overflow-hidden rounded-2xl border bg-card/50 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-[1.02] hover:border-primary/30">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      <div className="relative p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className={`p-3 rounded-xl ${colorClasses[color]} transition-colors duration-300`}>
+            <Icon className="h-6 w-6" />
+          </div>
+          {trend && (
+            <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+              {trend}
+            </span>
+          )}
+        </div>
+        <div className="space-y-1">
+          <div className="text-3xl font-bold text-foreground">{value}</div>
+          <div className="text-sm text-muted-foreground font-medium">{label}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Modern Circular Progress Bar
-function StatCircle({ value, label, color }: { value: number; label: string; color: string }) {
-  const radius = 40;
-  const stroke = 7;
+function StatCircle({ value, label }: { value: number; label: string }) {
+  const radius = 45;
+  const stroke = 8;
   const normalizedRadius = radius - stroke / 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   const percent = Math.min(Math.max(value, 0), 100);
   const strokeDashoffset = circumference - (percent / 100) * circumference;
+  
+  const getColor = (label: string) => {
+    switch (label.toLowerCase()) {
+      case 'cpu':
+        return 'hsl(var(--primary))';
+      case 'memory':
+        return 'hsl(var(--chart-1))';
+      case 'disk':
+        return 'hsl(var(--chart-2))';
+      default:
+        return 'hsl(var(--primary))';
+    }
+  };
+  
   return (
-    <div className="flex flex-col items-center">
-      <svg height={radius * 2} width={radius * 2}>
-        <circle
-          stroke="#e5e7eb"
-          fill="transparent"
-          strokeWidth={stroke}
-          r={normalizedRadius}
-          cx={radius}
-          cy={radius}
-        />
-        <circle
-          stroke={color}
-          fill="transparent"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circumference + ' ' + circumference}
-          style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.5s' }}
-          r={normalizedRadius}
-          cx={radius}
-          cy={radius}
-        />
-        <text
-          x="50%"
-          y="50%"
-          textAnchor="middle"
-          dy="0.3em"
-          fontSize="1.1em"
-          fontWeight="bold"
-          fill="#222"
-        >
-          {percent}%
-        </text>
-      </svg>
-      <span className="mt-2 text-xs font-medium text-gray-700">{label}</span>
+    <div className="group relative flex flex-col items-center p-6 rounded-2xl border bg-card/50 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+      <div className="relative">
+        <svg height={radius * 2} width={radius * 2} className="drop-shadow-sm">
+          <circle
+            stroke="hsl(var(--muted))"
+            fill="transparent"
+            strokeWidth={stroke}
+            r={normalizedRadius}
+            cx={radius}
+            cy={radius}
+            className="opacity-30"
+          />
+          <circle
+            stroke={getColor(label)}
+            fill="transparent"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={circumference + ' ' + circumference}
+            style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.8s ease-out' }}
+            r={normalizedRadius}
+            cx={radius}
+            cy={radius}
+            className="drop-shadow-sm"
+          />
+          <text
+            x="50%"
+            y="50%"
+            textAnchor="middle"
+            dy="0.3em"
+            fontSize="1.2em"
+            fontWeight="bold"
+            fill="hsl(var(--foreground))"
+            className="font-bold"
+          >
+            {percent}%
+          </text>
+        </svg>
+        <div className="mt-4 text-center">
+          <span className="text-sm font-semibold text-foreground">{label}</span>
+          <div className="text-xs text-muted-foreground mt-1">Usage</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -135,27 +186,24 @@ export const Summary = () => {
     { organizationId: user?.organizationId || "" }, 
     { enabled: !!user?.organizationId }
   );
-  const { data: monitoring, isLoading: loadingMonitoring } = api.user.getMetricsToken.useQuery();
-
   // Local state
   const [activityFilter, setActivityFilter] = useState<string>("all");
   const [visibleCards, setVisibleCards] = useState<Record<CardKey, boolean>>({
-    stats: true, quickActions: true, topDeployments: true, projects: true, recentActivity: true, userActions: true
+    stats: true, quickActions: true, topServices: true, projects: true, recentActivity: true, userActions: true
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [toggleMonitoring, setToggleMonitoring] = useLocalStorage("toggleMonitoring", false);
 
-  // Computed values
-  const deployments = useMemo(() => {
+  // Computed values - Replace deployments with services
+  const services = useMemo(() => {
     if (!projects) return [];
-    return projects.flatMap((p: any) => p.compose || []).flatMap((c: any) => c.deployments || []);
+    return projects.flatMap((p: any) => (p.compose || []).flatMap((c: any) => c.services || []));
   }, [projects]);
 
   const totalProjects = projects?.length || 0;
-  const totalDeployments = deployments?.length || 0;
-  const runningDeployments = deployments?.filter((d: any) => d.status === "running").length || 0;
-  const failedDeployments = deployments?.filter((d: any) => d.status === "failed").length || 0;
-  const topDeployments = deployments?.slice(0, 5) || [];
+  const totalServices = services?.length || 0;
+  const runningServices = services?.filter((s: any) => s.status === "running").length || 0;
+  const failedServices = services?.filter((s: any) => s.status === "failed").length || 0;
+  const topServices = services?.slice(0, 5) || [];
   const mostActiveProjects = projects?.slice(0, 5) || [];
   const unreadCount = notifications?.filter((n: any) => !n.read)?.length || 0;
 
@@ -164,48 +212,7 @@ export const Summary = () => {
     return (notifications || []).filter((n: any) => n.type === activityFilter || n.channel === activityFilter);
   }, [notifications, activityFilter]);
 
-  // Metrics configuration
-  const BASE_URL = useMemo(() => {
-    if (process.env.NODE_ENV === "production" && monitoring?.serverIp && monitoring?.metricsConfig?.server?.port) {
-      return `http://${monitoring.serverIp}:${monitoring.metricsConfig.server.port}/metrics`;
-    }
-    return "http://localhost:3001/metrics";
-  }, [monitoring]);
-
-  const TOKEN = useMemo(() => {
-    if (process.env.NODE_ENV === "production" && monitoring?.metricsConfig?.server?.token) {
-      return monitoring.metricsConfig.server.token;
-    }
-    return "metrics";
-  }, [monitoring]);
-
-  const { data: metricsData, isLoading: loadingMetrics, error: metricsError, refetch: refetchMetrics } = 
-    api.server.getServerMetrics.useQuery(
-      { url: BASE_URL, token: TOKEN, dataPoints: "50" },
-      { enabled: !!BASE_URL && !!TOKEN, refetchInterval: 10000 }
-    );
-
-  const metrics = useMemo(() => {
-    if (!metricsData?.length) return {};
-    const latest = metricsData[metricsData.length - 1];
-    if (!latest) return {};
-    
-    return {
-      cpu: Number.parseFloat(latest.cpu || "0"),
-      memUsed: Number.parseFloat(latest.memUsed || "0"),
-      memTotal: Number.parseFloat(latest.memTotal || "0"),
-      diskUsed: Number.parseFloat(latest.diskUsed || "0"),
-      totalDisk: Number.parseFloat(latest.totalDisk || "0"),
-    };
-  }, [metricsData]);
-
   const stats = useSystemStats();
-
-  // For services: gather all services from all projects
-  const services = useMemo(() => {
-    if (!projects) return [];
-    return projects.flatMap((p: any) => (p.compose || []).flatMap((c: any) => c.services || []));
-  }, [projects]);
 
   // Effects
   useEffect(() => {
@@ -254,55 +261,22 @@ export const Summary = () => {
 
   const visibleCount = Object.values(visibleCards).filter(Boolean).length;
 
-  // Helper functions for safe calculations
-  const getMemoryPercentage = () => {
-    if (!metrics.memUsed || !metrics.memTotal || metrics.memTotal === 0) return 0;
-    return (metrics.memUsed / metrics.memTotal) * 100;
-  };
 
-  const getDiskPercentage = () => {
-    if (!metrics.diskUsed || !metrics.totalDisk || metrics.totalDisk === 0) return 0;
-    return (metrics.diskUsed / metrics.totalDisk) * 100;
-  };
-
-  const getMemoryGB = (value: number) => {
-    return (value / 1024).toFixed(1);
-  };
 
   return (
-    <div className="flex flex-col gap-8 p-8 w-full max-w-5xl mx-auto">
-      {/* System Stats Card - Modern UI */}
-      <Card
-        className="rounded-xl border bg-white shadow-sm hover:shadow-md transition cursor-pointer"
-        onClick={() => router.push('/dashboard/monitoring')}
-        tabIndex={0}
-        role="button"
-        aria-label="Go to Monitoring"
-      >
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-semibold text-gray-900">
-            <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-2" />
-            System Stats
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-row justify-center gap-10 py-4">
-            <StatCircle value={stats?.cpu ?? 0} label="CPU" color="#2563eb" />
-            <StatCircle value={stats?.memory ?? 0} label="Memory" color="#22c55e" />
-            <StatCircle value={stats?.disk ?? 0} label="Disk" color="#f59e42" />
-          </div>
-        </CardContent>
-      </Card>
+    <div className="flex flex-col gap-8 p-8 w-full max-w-7xl mx-auto">
       {/* Welcome Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 mb-1">Welcome back, {user?.user?.name || 'User'}!</h1>
-          <p className="text-gray-500 text-base">
+        <div className="space-y-1">
+          <h1 className="text-4xl font-bold tracking-tight text-foreground bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            Welcome back, {user?.user?.name || 'User'}!
+          </h1>
+          <p className="text-muted-foreground text-lg">
             {org?.name ? `${org.name} • ` : ''}Dashboard Overview
           </p>
         </div>
         {unreadCount > 0 && (
-          <Button variant="outline" size="sm" onClick={markAllAsRead} className="shadow-md">
+          <Button variant="outline" size="sm" onClick={markAllAsRead} className="shadow-lg hover:shadow-xl transition-shadow">
             <Bell className="w-4 h-4 mr-2" />
             Mark all as read ({unreadCount})
           </Button>
@@ -310,78 +284,35 @@ export const Summary = () => {
       </div>
 
       {/* Dashboard Controls */}
-      <div className="flex items-center justify-between gap-4 p-4 bg-gradient-to-r from-muted/30 to-muted/10 rounded-2xl border border-border/50 backdrop-blur-md shadow-sm">
+      <div className="flex items-center justify-between gap-4 p-6 bg-gradient-to-r from-card/80 via-card/60 to-card/80 rounded-3xl border border-border/50 backdrop-blur-xl shadow-lg">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-primary/10">
+              <Eye className="w-5 h-5 text-primary" />
+            </div>
+            <span className="text-sm font-semibold text-foreground">Dashboard Sections</span>
+          </div>
+          <div className="relative">
+            <Button variant="outline" size="sm" className="h-10 px-4 rounded-xl shadow-md hover:shadow-lg transition-all">
+              <Settings className="w-4 h-4 mr-2" />
+              Configure
+              <Badge variant="secondary" className="ml-2 h-6 px-2 text-xs">
+                {visibleCount}/{CARD_KEYS.length}
+              </Badge>
+            </Button>
+          </div>
+        </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <Eye className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">View:</span>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 px-3 rounded-lg">
-                <Settings className="w-3 h-3 mr-2" />
-                Sections
-                <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
-                  {visibleCount}/{CARD_KEYS.length}
-                </Badge>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-64 rounded-xl shadow-lg">
-              <DropdownMenuLabel className="flex items-center gap-2">
-                <Eye className="w-4 h-4" />
-                Dashboard Sections
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {CARD_KEYS.map((key) => (
-                <DropdownMenuCheckboxItem
-                  key={key}
-                  checked={visibleCards[key]}
-                  onCheckedChange={() => handleToggleCard(key)}
-                  className="flex items-center gap-2 rounded hover:bg-muted/30 transition-colors"
-                >
-                  <span className="text-base">{CARD_CONFIG[key].icon}</span>
-                  <span className="flex-1">{CARD_CONFIG[key].name}</span>
-                  {visibleCards[key] ? (
-                    <Eye className="w-3 h-3 text-green-600" />
-                  ) : (
-                    <EyeOff className="w-3 h-3 text-muted-foreground" />
-                  )}
-                </DropdownMenuCheckboxItem>
-              ))}
-              <DropdownMenuSeparator />
-              <div className="px-2 py-1.5">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-xs rounded"
-                  onClick={() => {
-                    const allVisible = Object.values(visibleCards).every(Boolean);
-                    CARD_KEYS.forEach(key => {
-                      if (allVisible) {
-                        handleToggleCard(key);
-                      } else if (!visibleCards[key]) {
-                        handleToggleCard(key);
-                      }
-                    });
-                  }}
-                >
-                  {Object.values(visibleCards).every(Boolean) ? "Hide All" : "Show All"}
-                </Button>
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">Active:</span>
-            <div className="flex items-center gap-1">
+            <span className="text-sm font-medium text-muted-foreground">Active:</span>
+            <div className="flex items-center gap-2">
               {CARD_KEYS.filter(key => visibleCards[key]).slice(0, 3).map(key => (
-                <Badge key={key} variant="outline" className="h-5 px-1.5 text-xs rounded shadow-sm">
+                <Badge key={key} variant="outline" className="h-6 px-3 text-xs rounded-full shadow-sm border-primary/20">
                   {CARD_CONFIG[key].icon} {CARD_CONFIG[key].name}
                 </Badge>
               ))}
               {visibleCount > 3 && (
-                <Badge variant="outline" className="h-5 px-1.5 text-xs rounded shadow-sm">
+                <Badge variant="outline" className="h-6 px-3 text-xs rounded-full shadow-sm">
                   +{visibleCount - 3} more
                 </Badge>
               )}
@@ -392,239 +323,338 @@ export const Summary = () => {
             size="sm"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="h-8 px-3 rounded-lg shadow"
+            className="h-10 px-4 rounded-xl shadow-md hover:shadow-lg transition-all"
           >
-            <Loader2 className={`w-3 h-3 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <Loader2 className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
             {isRefreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
         </div>
       </div>
 
-      {/* Quick Stats */}
+      {/* System Stats & Quick Stats */}
       {visibleCards.stats && (
-        <Card className="rounded-xl border bg-white shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              📊 Quick Stats
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-8 justify-center">
-              <div className="flex flex-col items-center">
-                <Folder className="h-8 w-8 text-blue-500 mb-1 drop-shadow" />
-                <span className="font-extrabold text-2xl">{totalProjects}</span>
-                <span className="text-xs text-gray-500">Projects</span>
+        <div className="space-y-8">
+          {/* System Stats */}
+          <div className="group relative overflow-hidden rounded-3xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer" onClick={() => router.push('/dashboard/monitoring')}>
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 rounded-2xl bg-primary/10">
+                  <Activity className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-foreground">System Performance</h3>
+                  <p className="text-muted-foreground">Real-time system metrics</p>
+                </div>
               </div>
-              <div className="flex flex-col items-center">
-                <Rocket className="h-8 w-8 text-green-500 mb-1 drop-shadow" />
-                <span className="font-extrabold text-2xl">{totalDeployments}</span>
-                <span className="text-xs text-gray-500">Deployments</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <Rocket className="h-8 w-8 text-yellow-500 mb-1 drop-shadow" />
-                <span className="font-extrabold text-2xl">{runningDeployments}</span>
-                <span className="text-xs text-gray-500">Running</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <Rocket className="h-8 w-8 text-red-500 mb-1 drop-shadow" />
-                <span className="font-extrabold text-2xl">{failedDeployments}</span>
-                <span className="text-xs text-gray-500">Failed</span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <StatCircle value={stats?.cpu ?? 0} label="CPU" />
+                <StatCircle value={stats?.memory ?? 0} label="Memory" />
+                <StatCircle value={stats?.disk ?? 0} label="Disk" />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard 
+              icon={Folder} 
+              value={totalProjects} 
+              label="Total Projects" 
+              color="primary"
+            />
+            <StatCard 
+              icon={Server} 
+              value={totalServices} 
+              label="Active Services" 
+              color="success"
+            />
+            <StatCard 
+              icon={Rocket} 
+              value={runningServices} 
+              label="Running Services" 
+              color="success"
+            />
+            <StatCard 
+              icon={Rocket} 
+              value={failedServices} 
+              label="Failed Services" 
+              color="danger"
+            />
+          </div>
+        </div>
       )}
 
       {/* Quick Actions */}
       {visibleCards.quickActions && (
-        <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-[#111] dark:via-[#18181b] dark:to-[#232326]">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              ⚡ Quick Actions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="group relative overflow-hidden rounded-3xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-lg">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="relative p-8">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="p-3 rounded-2xl bg-primary/10">
+                <Rocket className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-foreground">Quick Actions</h3>
+                <p className="text-muted-foreground">Access your most used features</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
               <Button
                 variant="outline"
-                className="h-20 flex-col gap-2 rounded-xl shadow hover:scale-105 transition-transform"
+                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
                 onClick={() => router.push('/dashboard/projects')}
               >
-                <Folder className="h-6 w-6" />
-                <span className="text-sm">Projects</span>
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Folder className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-xs font-medium">Projects</span>
               </Button>
               <Button
                 variant="outline"
-                className="h-20 flex-col gap-2 rounded-xl shadow hover:scale-105 transition-transform"
-                onClick={() => router.push('/dashboard/projects/new')}
+                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
+                onClick={() => router.push('/dashboard/projects')}
               >
-                <Plus className="h-6 w-6" />
-                <span className="text-sm">New Project</span>
+                <div className="p-2 rounded-xl bg-green-500/10">
+                  <Plus className="h-5 w-5 text-green-500" />
+                </div>
+                <span className="text-xs font-medium">New Project</span>
               </Button>
               <Button
                 variant="outline"
-                className="h-20 flex-col gap-2 rounded-xl shadow hover:scale-105 transition-transform"
+                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
                 onClick={() => router.push('/dashboard/compose')}
               >
-                <Rocket className="h-6 w-6" />
-                <span className="text-sm">Deploy Stack</span>
+                <div className="p-2 rounded-xl bg-blue-500/10">
+                  <Rocket className="h-5 w-5 text-blue-500" />
+                </div>
+                <span className="text-xs font-medium">Deploy Stack</span>
               </Button>
               <Button
                 variant="outline"
-                className="h-20 flex-col gap-2 rounded-xl shadow hover:scale-105 transition-transform"
+                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
                 onClick={() => router.push('/dashboard/monitoring')}
               >
-                <Activity className="h-6 w-6" />
-                <span className="text-sm">Monitoring</span>
+                <div className="p-2 rounded-xl bg-purple-500/10">
+                  <Activity className="h-5 w-5 text-purple-500" />
+                </div>
+                <span className="text-xs font-medium">Monitoring</span>
               </Button>
               <Button
                 variant="outline"
-                className="h-20 flex-col gap-2 rounded-xl shadow hover:scale-105 transition-transform"
+                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
                 onClick={() => router.push('/dashboard/swarm')}
               >
-                <Users className="h-6 w-6" />
-                <span className="text-sm">Swarm</span>
+                <div className="p-2 rounded-xl bg-orange-500/10">
+                  <Users className="h-5 w-5 text-orange-500" />
+                </div>
+                <span className="text-xs font-medium">Swarm</span>
               </Button>
               <Button
                 variant="outline"
-                className="h-20 flex-col gap-2 rounded-xl shadow hover:scale-105 transition-transform"
+                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
                 onClick={() => router.push('/dashboard/settings')}
               >
-                <Settings className="h-6 w-6" />
-                <span className="text-sm">Settings</span>
+                <div className="p-2 rounded-xl bg-gray-500/10">
+                  <Settings className="h-5 w-5 text-gray-500" />
+                </div>
+                <span className="text-xs font-medium">Settings</span>
               </Button>
               <Button
                 variant="outline"
-                className="h-20 flex-col gap-2 rounded-xl shadow hover:scale-105 transition-transform"
+                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
                 onClick={() => router.push('/dashboard/settings/users')}
               >
-                <UserPlus className="h-6 w-6" />
-                <span className="text-sm">Add Users</span>
+                <div className="p-2 rounded-xl bg-indigo-500/10">
+                  <UserPlus className="h-5 w-5 text-indigo-500" />
+                </div>
+                <span className="text-xs font-medium">Add Users</span>
               </Button>
               <Button
                 variant="outline"
-                className="h-20 flex-col gap-2 rounded-xl shadow hover:scale-105 transition-transform"
+                className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
                 onClick={() => window.open('https://hawiyat.org/docs', '_blank')}
               >
-                <BookOpen className="h-6 w-6" />
-                <span className="text-sm">Documentation</span>
+                <div className="p-2 rounded-xl bg-teal-500/10">
+                  <BookOpen className="h-5 w-5 text-teal-500" />
+                </div>
+                <span className="text-xs font-medium">Documentation</span>
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Top Services & Projects */}
-      {visibleCards.topDeployments && (
+      {visibleCards.topServices && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Services Card */}
-          <Card className="rounded-xl border bg-white shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                🛠️ Top Services
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          <div className="group relative overflow-hidden rounded-3xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-lg">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 rounded-2xl bg-primary/10">
+                  <Server className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-foreground">Top Services</h3>
+                  <p className="text-muted-foreground">Most active services</p>
+                </div>
+              </div>
               <div className="space-y-3">
-                {services.slice(0, 5).map((service: any, index: number) => (
+                {topServices.slice(0, 5).map((service: any, index: number) => (
                   <div
                     key={service.serviceId || index}
-                    className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+                    className="group/item flex items-center justify-between p-4 rounded-2xl bg-muted/20 hover:bg-muted/40 transition-all duration-300 cursor-pointer border border-transparent hover:border-primary/20"
                     onClick={() => service.serviceId && router.push(`/dashboard/services/${service.serviceId}`)}
                   >
-                    <Badge variant="outline">{service.status || 'active'}</Badge>
-                    <span className="font-medium">{service.name || `Service ${index + 1}`}</span>
-                    <ArrowRight className="h-4 w-4 text-gray-400" />
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-primary/10">
+                        <Server className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-foreground">{service.name || `Service ${index + 1}`}</span>
+                        <div className="text-xs text-muted-foreground">Service ID: {service.serviceId || 'N/A'}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {service.status || 'active'}
+                      </Badge>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover/item:text-primary transition-colors" />
+                    </div>
                   </div>
                 ))}
-                {services.length === 0 && (
-                  <p className="text-gray-400 text-center py-4">No services found</p>
+                {topServices.length === 0 && (
+                  <div className="text-center py-8">
+                    <Server className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+                    <p className="text-muted-foreground">No services found</p>
+                  </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+          
           {/* Projects Card */}
-          <Card className="rounded-xl border bg-white shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                📁 Most Active Projects
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          <div className="group relative overflow-hidden rounded-3xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-lg">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 rounded-2xl bg-primary/10">
+                  <Folder className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-foreground">Most Active Projects</h3>
+                  <p className="text-muted-foreground">Your top projects</p>
+                </div>
+              </div>
               <div className="space-y-3">
                 {mostActiveProjects.slice(0, 5).map((project: any) => (
                   <div
                     key={project.projectId}
-                    className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
-                    onClick={() => router.push(`/dashboard/projects/${project.projectId}`)}
+                    className="group/item flex items-center justify-between p-4 rounded-2xl bg-muted/20 hover:bg-muted/40 transition-all duration-300 cursor-pointer border border-transparent hover:border-primary/20"
+                    onClick={() => router.push(`/dashboard/project/${project.projectId}`)}
                   >
-                    <Folder className="h-4 w-4 text-gray-400" />
-                    <span className="font-medium">{project.name}</span>
-                    <ArrowRight className="h-4 w-4 text-gray-400" />
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-primary/10">
+                        <Folder className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-foreground">{project.name}</span>
+                        <div className="text-xs text-muted-foreground">Project ID: {project.projectId}</div>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover/item:text-primary transition-colors" />
                   </div>
                 ))}
                 {mostActiveProjects.length === 0 && (
-                  <p className="text-gray-400 text-center py-4">No projects found</p>
+                  <div className="text-center py-8">
+                    <Folder className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+                    <p className="text-muted-foreground">No projects found</p>
+                  </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Recent Activity */}
       {visibleCards.recentActivity && (
-        <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-[#111] dark:via-[#18181b] dark:to-[#232326]">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                🔔 Recent Activity
-              </CardTitle>
-              <Select value={activityFilter} onValueChange={setActivityFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="slack">Slack</SelectItem>
-                  <SelectItem value="email">Email</SelectItem>
-                  <SelectItem value="telegram">Telegram</SelectItem>
-                </SelectContent>
-              </Select>
+        <div className="group relative overflow-hidden rounded-3xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-lg">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="relative p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-primary/10">
+                  <Bell className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-foreground">Recent Activity</h3>
+                  <p className="text-muted-foreground">Latest notifications and updates</p>
+                </div>
+              </div>
+              <select 
+                value={activityFilter} 
+                onChange={(e) => setActivityFilter(e.target.value)}
+                className="px-4 py-2 text-sm border rounded-xl bg-background/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              >
+                <option value="all">All Activities</option>
+                <option value="slack">Slack</option>
+                <option value="email">Email</option>
+                <option value="telegram">Telegram</option>
+              </select>
             </div>
-          </CardHeader>
-          <CardContent>
             <div className="space-y-3">
               {loadingNotifications ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                  <span className="ml-2">Loading notifications...</span>
+                <div className="flex items-center justify-center py-12">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <span className="text-muted-foreground">Loading notifications...</span>
+                  </div>
                 </div>
               ) : filteredNotifications.length > 0 ? (
                 filteredNotifications.slice(0, 10).map((notification: any) => (
                   <div
                     key={notification.notificationId}
-                    className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/30 transition-colors shadow-sm"
+                    className="group/item flex items-center justify-between p-4 rounded-2xl bg-muted/20 hover:bg-muted/40 transition-all duration-300 cursor-pointer border border-transparent hover:border-primary/20"
                     onClick={() => handleNotificationClick(notification)}
                   >
-                    <div className="flex items-center gap-3">
-                      <Bell className={`h-4 w-4 ${notification.read ? 'text-muted-foreground' : 'text-blue-500'}`} />
+                    <div className="flex items-center gap-4">
+                      <div className={`p-2 rounded-xl ${notification.read ? 'bg-muted/50' : 'bg-primary/10'}`}>
+                        <Bell className={`h-4 w-4 ${notification.read ? 'text-muted-foreground' : 'text-primary'}`} />
+                      </div>
                       <div>
-                        <p className="font-medium">{notification.name || 'Notification'}</p>
+                        <p className="font-semibold text-foreground">{notification.name || 'Notification'}</p>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(notification.createdAt).toLocaleDateString()}
+                          {new Date(notification.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
                         </p>
                       </div>
                     </div>
-                    <Badge variant="outline">{notification.notificationType}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {notification.notificationType}
+                      </Badge>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover/item:text-primary transition-colors" />
+                    </div>
                   </div>
                 ))
               ) : (
-                <p className="text-muted-foreground text-center py-8">No notifications found</p>
+                <div className="text-center py-12">
+                  <Bell className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+                  <p className="text-muted-foreground">No notifications found</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">You're all caught up!</p>
+                </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );
