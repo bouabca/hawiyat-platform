@@ -55,11 +55,10 @@ const CARD_CONFIG = {
 type CardKey = keyof typeof CARD_CONFIG;
 const CARD_KEYS = Object.keys(CARD_CONFIG) as CardKey[];
 
-// Circular progress component
+// Modern Circular Progress Bar
 function StatCircle({ value, label, color }: { value: number; label: string; color: string }) {
-  // SVG circle params
   const radius = 40;
-  const stroke = 8;
+  const stroke = 7;
   const normalizedRadius = radius - stroke / 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   const percent = Math.min(Math.max(value, 0), 100);
@@ -91,14 +90,14 @@ function StatCircle({ value, label, color }: { value: number; label: string; col
           y="50%"
           textAnchor="middle"
           dy="0.3em"
-          fontSize="1.2em"
+          fontSize="1.1em"
           fontWeight="bold"
-          fill="#111"
+          fill="#222"
         >
           {percent}%
         </text>
       </svg>
-      <span className="mt-2 text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
+      <span className="mt-2 text-xs font-medium text-gray-700">{label}</span>
     </div>
   );
 }
@@ -202,6 +201,12 @@ export const Summary = () => {
 
   const stats = useSystemStats();
 
+  // For services: gather all services from all projects
+  const services = useMemo(() => {
+    if (!projects) return [];
+    return projects.flatMap((p: any) => (p.compose || []).flatMap((c: any) => c.services || []));
+  }, [projects]);
+
   // Effects
   useEffect(() => {
     const saved = sessionStorage.getItem('dashboardVisibleCards');
@@ -266,55 +271,33 @@ export const Summary = () => {
 
   return (
     <div className="flex flex-col gap-8 p-8 w-full max-w-5xl mx-auto">
-      {/* System Stats Card */}
-      <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-[#111] dark:via-[#18181b] dark:to-[#232326]">
+      {/* System Stats Card - Modern UI */}
+      <Card
+        className="rounded-xl border bg-white shadow-sm hover:shadow-md transition cursor-pointer"
+        onClick={() => router.push('/dashboard/monitoring')}
+        tabIndex={0}
+        role="button"
+        aria-label="Go to Monitoring"
+      >
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-black dark:text-white">
-            <span className="inline-block w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 mr-2" />
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-gray-900">
+            <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-2" />
             System Stats
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-row justify-center gap-12 py-4">
-            <StatCircle
-              value={stats?.cpu ?? 0}
-              label="CPU"
-              color="url(#cpu-gradient)"
-            />
-            <svg width="0" height="0">
-              <defs>
-                <linearGradient id="cpu-gradient" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#6366f1" />
-                  <stop offset="100%" stopColor="#0ea5e9" />
-                </linearGradient>
-                <linearGradient id="mem-gradient" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#22d3ee" />
-                  <stop offset="100%" stopColor="#6366f1" />
-                </linearGradient>
-                <linearGradient id="disk-gradient" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#a21caf" />
-                  <stop offset="100%" stopColor="#f59e42" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <StatCircle
-              value={stats?.memory ?? 0}
-              label="Memory"
-              color="url(#mem-gradient)"
-            />
-            <StatCircle
-              value={stats?.disk ?? 0}
-              label="Disk"
-              color="url(#disk-gradient)"
-            />
+          <div className="flex flex-row justify-center gap-10 py-4">
+            <StatCircle value={stats?.cpu ?? 0} label="CPU" color="#2563eb" />
+            <StatCircle value={stats?.memory ?? 0} label="Memory" color="#22c55e" />
+            <StatCircle value={stats?.disk ?? 0} label="Disk" color="#f59e42" />
           </div>
         </CardContent>
       </Card>
       {/* Welcome Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-black via-gray-800 to-blue-600 bg-clip-text text-transparent mb-1 dark:from-white dark:via-gray-300 dark:to-blue-400">Welcome back, {user?.user?.name || 'User'}!</h1>
-          <p className="text-gray-500 text-base dark:text-gray-400">
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 mb-1">Welcome back, {user?.user?.name || 'User'}!</h1>
+          <p className="text-gray-500 text-base">
             {org?.name ? `${org.name} • ` : ''}Dashboard Overview
           </p>
         </div>
@@ -419,7 +402,7 @@ export const Summary = () => {
 
       {/* Quick Stats */}
       {visibleCards.stats && (
-        <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-[#111] dark:via-[#18181b] dark:to-[#232326]">
+        <Card className="rounded-xl border bg-white shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               📊 Quick Stats
@@ -430,22 +413,22 @@ export const Summary = () => {
               <div className="flex flex-col items-center">
                 <Folder className="h-8 w-8 text-blue-500 mb-1 drop-shadow" />
                 <span className="font-extrabold text-2xl">{totalProjects}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Projects</span>
+                <span className="text-xs text-gray-500">Projects</span>
               </div>
               <div className="flex flex-col items-center">
                 <Rocket className="h-8 w-8 text-green-500 mb-1 drop-shadow" />
                 <span className="font-extrabold text-2xl">{totalDeployments}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Deployments</span>
+                <span className="text-xs text-gray-500">Deployments</span>
               </div>
               <div className="flex flex-col items-center">
                 <Rocket className="h-8 w-8 text-yellow-500 mb-1 drop-shadow" />
                 <span className="font-extrabold text-2xl">{runningDeployments}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Running</span>
+                <span className="text-xs text-gray-500">Running</span>
               </div>
               <div className="flex flex-col items-center">
                 <Rocket className="h-8 w-8 text-red-500 mb-1 drop-shadow" />
                 <span className="font-extrabold text-2xl">{failedDeployments}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Failed</span>
+                <span className="text-xs text-gray-500">Failed</span>
               </div>
             </div>
           </CardContent>
@@ -531,35 +514,37 @@ export const Summary = () => {
         </Card>
       )}
 
-      {/* Top Deployments & Projects */}
+      {/* Top Services & Projects */}
       {visibleCards.topDeployments && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-[#111] dark:via-[#18181b] dark:to-[#232326]">
+          {/* Services Card */}
+          <Card className="rounded-xl border bg-white shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                🚀 Top Deployments
+                🛠️ Top Services
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {topDeployments.slice(0, 5).map((deployment: any, index: number) => (
-                  <div key={deployment.composeId} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted/30 transition-colors shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <Badge variant={deployment.status === 'running' ? 'default' : 'secondary'}>
-                        {deployment.status}
-                      </Badge>
-                      <span className="font-medium">{deployment.name || `Deployment ${index + 1}`}</span>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                {services.slice(0, 5).map((service: any, index: number) => (
+                  <div
+                    key={service.serviceId || index}
+                    className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+                    onClick={() => service.serviceId && router.push(`/dashboard/services/${service.serviceId}`)}
+                  >
+                    <Badge variant="outline">{service.status || 'active'}</Badge>
+                    <span className="font-medium">{service.name || `Service ${index + 1}`}</span>
+                    <ArrowRight className="h-4 w-4 text-gray-400" />
                   </div>
                 ))}
-                {topDeployments.length === 0 && (
-                  <p className="text-muted-foreground text-center py-4">No deployments found</p>
+                {services.length === 0 && (
+                  <p className="text-gray-400 text-center py-4">No services found</p>
                 )}
               </div>
             </CardContent>
           </Card>
-          <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-[#111] dark:via-[#18181b] dark:to-[#232326]">
+          {/* Projects Card */}
+          <Card className="rounded-xl border bg-white shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 📁 Most Active Projects
@@ -568,16 +553,18 @@ export const Summary = () => {
             <CardContent>
               <div className="space-y-3">
                 {mostActiveProjects.slice(0, 5).map((project: any) => (
-                  <div key={project.projectId} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted/30 transition-colors shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <Folder className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{project.name}</span>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <div
+                    key={project.projectId}
+                    className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+                    onClick={() => router.push(`/dashboard/projects/${project.projectId}`)}
+                  >
+                    <Folder className="h-4 w-4 text-gray-400" />
+                    <span className="font-medium">{project.name}</span>
+                    <ArrowRight className="h-4 w-4 text-gray-400" />
                   </div>
                 ))}
                 {mostActiveProjects.length === 0 && (
-                  <p className="text-muted-foreground text-center py-4">No projects found</p>
+                  <p className="text-gray-400 text-center py-4">No projects found</p>
                 )}
               </div>
             </CardContent>
