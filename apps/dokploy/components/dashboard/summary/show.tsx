@@ -55,6 +55,76 @@ const CARD_CONFIG = {
 type CardKey = keyof typeof CARD_CONFIG;
 const CARD_KEYS = Object.keys(CARD_CONFIG) as CardKey[];
 
+// Circular progress component
+function StatCircle({ value, label, color }: { value: number; label: string; color: string }) {
+  // SVG circle params
+  const radius = 40;
+  const stroke = 8;
+  const normalizedRadius = radius - stroke / 2;
+  const circumference = normalizedRadius * 2 * Math.PI;
+  const percent = Math.min(Math.max(value, 0), 100);
+  const strokeDashoffset = circumference - (percent / 100) * circumference;
+  return (
+    <div className="flex flex-col items-center">
+      <svg height={radius * 2} width={radius * 2}>
+        <circle
+          stroke="#e5e7eb"
+          fill="transparent"
+          strokeWidth={stroke}
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+        />
+        <circle
+          stroke={color}
+          fill="transparent"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circumference + ' ' + circumference}
+          style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.5s' }}
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+        />
+        <text
+          x="50%"
+          y="50%"
+          textAnchor="middle"
+          dy="0.3em"
+          fontSize="1.2em"
+          fontWeight="bold"
+          fill="#111"
+        >
+          {percent}%
+        </text>
+      </svg>
+      <span className="mt-2 text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
+    </div>
+  );
+}
+
+// System stats hook
+function useSystemStats() {
+  const [stats, setStats] = useState<{ cpu: number; memory: number; disk: number } | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    async function fetchStats() {
+      try {
+        const res = await fetch("/api/stats");
+        const data = await res.json();
+        if (mounted) setStats(data);
+      } catch {}
+    }
+    fetchStats();
+    const interval = setInterval(fetchStats, 5000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+  return stats;
+}
+
 export const Summary = () => {
   const router = useRouter();
   
@@ -130,6 +200,8 @@ export const Summary = () => {
     };
   }, [metricsData]);
 
+  const stats = useSystemStats();
+
   // Effects
   useEffect(() => {
     const saved = sessionStorage.getItem('dashboardVisibleCards');
@@ -194,11 +266,55 @@ export const Summary = () => {
 
   return (
     <div className="flex flex-col gap-8 p-8 w-full max-w-5xl mx-auto">
+      {/* System Stats Card */}
+      <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-[#111] dark:via-[#18181b] dark:to-[#232326]">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-black dark:text-white">
+            <span className="inline-block w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 mr-2" />
+            System Stats
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-row justify-center gap-12 py-4">
+            <StatCircle
+              value={stats?.cpu ?? 0}
+              label="CPU"
+              color="url(#cpu-gradient)"
+            />
+            <svg width="0" height="0">
+              <defs>
+                <linearGradient id="cpu-gradient" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#6366f1" />
+                  <stop offset="100%" stopColor="#0ea5e9" />
+                </linearGradient>
+                <linearGradient id="mem-gradient" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#22d3ee" />
+                  <stop offset="100%" stopColor="#6366f1" />
+                </linearGradient>
+                <linearGradient id="disk-gradient" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#a21caf" />
+                  <stop offset="100%" stopColor="#f59e42" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <StatCircle
+              value={stats?.memory ?? 0}
+              label="Memory"
+              color="url(#mem-gradient)"
+            />
+            <StatCircle
+              value={stats?.disk ?? 0}
+              label="Disk"
+              color="url(#disk-gradient)"
+            />
+          </div>
+        </CardContent>
+      </Card>
       {/* Welcome Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent mb-1">Welcome back, {user?.user?.name || 'User'}!</h1>
-          <p className="text-muted-foreground text-base">
+          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-black via-gray-800 to-blue-600 bg-clip-text text-transparent mb-1 dark:from-white dark:via-gray-300 dark:to-blue-400">Welcome back, {user?.user?.name || 'User'}!</h1>
+          <p className="text-gray-500 text-base dark:text-gray-400">
             {org?.name ? `${org.name} • ` : ''}Dashboard Overview
           </p>
         </div>
@@ -303,7 +419,7 @@ export const Summary = () => {
 
       {/* Quick Stats */}
       {visibleCards.stats && (
-        <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-muted/40 to-muted/10">
+        <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-[#111] dark:via-[#18181b] dark:to-[#232326]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               📊 Quick Stats
@@ -314,22 +430,22 @@ export const Summary = () => {
               <div className="flex flex-col items-center">
                 <Folder className="h-8 w-8 text-blue-500 mb-1 drop-shadow" />
                 <span className="font-extrabold text-2xl">{totalProjects}</span>
-                <span className="text-xs text-muted-foreground">Projects</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Projects</span>
               </div>
               <div className="flex flex-col items-center">
                 <Rocket className="h-8 w-8 text-green-500 mb-1 drop-shadow" />
                 <span className="font-extrabold text-2xl">{totalDeployments}</span>
-                <span className="text-xs text-muted-foreground">Deployments</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Deployments</span>
               </div>
               <div className="flex flex-col items-center">
                 <Rocket className="h-8 w-8 text-yellow-500 mb-1 drop-shadow" />
                 <span className="font-extrabold text-2xl">{runningDeployments}</span>
-                <span className="text-xs text-muted-foreground">Running</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Running</span>
               </div>
               <div className="flex flex-col items-center">
                 <Rocket className="h-8 w-8 text-red-500 mb-1 drop-shadow" />
                 <span className="font-extrabold text-2xl">{failedDeployments}</span>
-                <span className="text-xs text-muted-foreground">Failed</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Failed</span>
               </div>
             </div>
           </CardContent>
@@ -338,7 +454,7 @@ export const Summary = () => {
 
       {/* Quick Actions */}
       {visibleCards.quickActions && (
-        <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-muted/40 to-muted/10">
+        <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-[#111] dark:via-[#18181b] dark:to-[#232326]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               ⚡ Quick Actions
@@ -418,7 +534,7 @@ export const Summary = () => {
       {/* Top Deployments & Projects */}
       {visibleCards.topDeployments && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-muted/40 to-muted/10">
+          <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-[#111] dark:via-[#18181b] dark:to-[#232326]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 🚀 Top Deployments
@@ -443,7 +559,7 @@ export const Summary = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-muted/40 to-muted/10">
+          <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-[#111] dark:via-[#18181b] dark:to-[#232326]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 📁 Most Active Projects
@@ -471,7 +587,7 @@ export const Summary = () => {
 
       {/* Recent Activity */}
       {visibleCards.recentActivity && (
-        <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-muted/40 to-muted/10">
+        <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-[#111] dark:via-[#18181b] dark:to-[#232326]">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
@@ -519,34 +635,6 @@ export const Summary = () => {
               ) : (
                 <p className="text-muted-foreground text-center py-8">No notifications found</p>
               )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* User Actions */}
-      {visibleCards.userActions && (
-        <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white via-muted/40 to-muted/10">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              👤 Recent User Actions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {[
-                { type: 'project', message: 'Created project "Alpha"', date: '2024-06-01 10:00', icon: Folder },
-                { type: 'deployment', message: 'Deployed stack "web-app"', date: '2024-06-01 11:00', icon: Rocket },
-                { type: 'settings', message: 'Changed organization logo', date: '2024-06-01 12:00', icon: Settings },
-              ].map((action, index) => (
-                <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted/30 transition-colors shadow-sm">
-                  <action.icon className="h-4 w-4 text-muted-foreground" />
-                  <div className="flex-1">
-                    <p className="font-medium">{action.message}</p>
-                    <p className="text-sm text-muted-foreground">{action.date}</p>
-                  </div>
-                </div>
-              ))}
             </div>
           </CardContent>
         </Card>
