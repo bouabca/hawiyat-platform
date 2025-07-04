@@ -418,10 +418,10 @@ export const Summary = () => {
               <Button
                 variant="outline"
                 className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
-                onClick={() => router.push('dashboard/settings/server')}
+                onClick={() => router.push('dashboard/settings/servers')}
               >
                 <div className="p-2 rounded-xl bg-blue-500/10">
-                  <ServerCog className="h-5 w-5 text-blue-500" />
+                  <Server className="h-5 w-5 text-blue-500" />
                 </div>
                 <span className="text-xs font-medium">Add Server</span>
               </Button>
@@ -441,7 +441,7 @@ export const Summary = () => {
                 onClick={() => router.push('/dashboard/swarm')}
               >
                 <div className="p-2 rounded-xl bg-orange-500/10">
-                  <Users className="h-5 w-5 text-orange-500" />
+                  <ServerCog className="h-5 w-5 text-orange-500" />
                 </div>
                 <span className="text-xs font-medium">Swarm</span>
               </Button>
