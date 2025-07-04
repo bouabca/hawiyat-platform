@@ -18,6 +18,7 @@ import {
 	GalleryVerticalEnd,
 	GitBranch,
 	HeartIcon,
+	HomeIcon,
 	KeyRound,
 	Loader2,
 	type LucideIcon,
@@ -145,6 +146,12 @@ type Menu = {
 // The `isEnabled` function is called to determine if the item should be displayed
 const MENU: Menu = {
 	home: [
+		{
+			isSingle: true,
+			title: "Home",
+			url: "/dashboard/summary",
+			icon: HomeIcon,
+		},
 		{
 			isSingle: true,
 			title: "Projects",

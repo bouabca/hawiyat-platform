@@ -95,7 +95,7 @@ export default function Home({ IS_CLOUD }: Props) {
 			}
 
 			toast.success("Logged in successfully");
-			router.push("/dashboard/projects");
+			router.push("/dashboard/summary");
 		} catch (_error) {
 			toast.error("An error occurred while logging in");
 		} finally {
@@ -123,7 +123,7 @@ export default function Home({ IS_CLOUD }: Props) {
 			}
 
 			toast.success("Logged in successfully");
-			router.push("/dashboard/projects");
+			router.push("/dashboard/summary");
 		} catch (_error) {
 			toast.error("An error occurred while verifying 2FA code");
 		} finally {
@@ -153,7 +153,7 @@ export default function Home({ IS_CLOUD }: Props) {
 			}
 
 			toast.success("Logged in successfully");
-			router.push("/dashboard/projects");
+			router.push("/dashboard/summary");
 		} catch (_error) {
 			toast.error("An error occurred while verifying backup code");
 		} finally {
@@ -449,7 +449,7 @@ export default function Home({ IS_CLOUD }: Props) {
 						) : (
 							<Link
 								className="hover:underline text-muted-foreground"
-								href="https://docs.dokploy.com/docs/core/reset-password"
+								href="https://hawiyat.org"
 								target="_blank"
 							>
 								Lost your password?
@@ -474,7 +474,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 				return {
 					redirect: {
 						permanent: true,
-						destination: "/dashboard/projects",
+						destination: "/dashboard/summary",
 					},
 				};
 			}
@@ -503,7 +503,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		return {
 			redirect: {
 				permanent: true,
-				destination: "/dashboard/projects",
+				destination: "/dashboard/summary",
 			},
 		};
 	}
