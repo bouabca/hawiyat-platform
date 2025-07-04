@@ -350,14 +350,9 @@ export const Summary = () => {
   }, [refetchProjects, refetchNotifications]);
 
   const handleNotificationClick = useCallback((notification: any) => {
+    console.log('Notification clicked:', notification); // Debug log
     setSelectedNotification(notification);
-    // Optionally, you can still navigate if needed:
-    // if (notification.projectId) {
-    //   router.push(`/dashboard/projects/${notification.projectId}`);
-    // } else if (notification.deploymentId) {
-    //   router.push(`/dashboard/compose/${notification.deploymentId}`);
-    // }
-  }, [router]);
+  }, []);
 
 
 
@@ -423,7 +418,7 @@ export const Summary = () => {
               <Button
                 variant="outline"
                 className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
-                onClick={() => router.push('dashboard/settings/servers')}
+                onClick={() => router.push('dashboard/settings/server')}
               >
                 <div className="p-2 rounded-xl bg-blue-500/10">
                   <ServerCog className="h-5 w-5 text-blue-500" />
@@ -453,7 +448,7 @@ export const Summary = () => {
               <Button
                 variant="outline"
                 className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
-                onClick={() => router.push('/dashboard/settings')}
+                onClick={() => router.push('/dashboard/settings/profile')}
               >
                 <div className="p-2 rounded-xl bg-gray-500/10">
                   <Settings className="h-5 w-5 text-gray-500" />
@@ -805,44 +800,109 @@ export const Summary = () => {
 
       {/* Notification Popup */}
       {selectedNotification && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-card rounded-2xl shadow-2xl p-6 max-w-md w-full relative animate-fade-in">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all duration-300"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedNotification(null);
+            }
+          }}
+        >
+          <div className="bg-card rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4 relative transform transition-all duration-300 scale-100">
             <button
-              className="absolute top-3 right-3 text-muted-foreground hover:text-primary transition-colors text-xl font-bold"
+              className="absolute top-4 right-4 text-muted-foreground hover:text-primary transition-colors text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted/50"
               onClick={() => setSelectedNotification(null)}
               aria-label="Close"
             >
               ×
             </button>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-xl bg-primary/10">
-                <Bell className="h-5 w-5 text-primary" />
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 rounded-xl bg-primary/10">
+                <Bell className="h-6 w-6 text-primary" />
               </div>
-              <div>
-                <h2 className="font-bold text-lg text-foreground">{selectedNotification.name || 'Notification'}</h2>
-                <div className="text-xs text-muted-foreground mt-1">
+              <div className="flex-1">
+                <h2 className="font-bold text-xl text-foreground">{selectedNotification.name || 'Notification'}</h2>
+                <div className="text-sm text-muted-foreground mt-1">
                   {selectedNotification.notificationType} • {new Date(selectedNotification.createdAt).toLocaleString()}
                 </div>
               </div>
             </div>
-            <div className="mt-4 text-foreground text-sm whitespace-pre-line">
-              {selectedNotification.body || selectedNotification.content || 'No additional details.'}
-            </div>
-            {/* Optionally, show project or deployment links */}
-            {(selectedNotification.projectId || selectedNotification.deploymentId) && (
-              <div className="mt-4 flex gap-2">
-                {selectedNotification.projectId && (
-                  <Button size="sm" variant="outline" onClick={() => { router.push(`/dashboard/projects/${selectedNotification.projectId}`); setSelectedNotification(null); }}>
-                    View Project
-                  </Button>
-                )}
-                {selectedNotification.deploymentId && (
-                  <Button size="sm" variant="outline" onClick={() => { router.push(`/dashboard/compose/${selectedNotification.deploymentId}`); setSelectedNotification(null); }}>
-                    View Deployment
-                  </Button>
-                )}
+            
+            {/* Notification Details */}
+            <div className="space-y-4">
+              {/* Type Badge */}
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  {selectedNotification.notificationType}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  {selectedNotification.read ? 'Read' : 'Unread'}
+                </span>
               </div>
-            )}
+              
+              {/* Content */}
+              <div className="bg-muted/20 rounded-xl p-4">
+                <h3 className="font-semibold text-foreground mb-2">Details</h3>
+                <div className="text-foreground text-sm whitespace-pre-line">
+                  {selectedNotification.body || selectedNotification.content || 'No additional details available for this notification.'}
+                </div>
+              </div>
+              
+              {/* Additional Info */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Created:</span>
+                  <div className="font-medium text-foreground">
+                    {new Date(selectedNotification.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Time:</span>
+                  <div className="font-medium text-foreground">
+                    {new Date(selectedNotification.createdAt).toLocaleTimeString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="mt-6 flex gap-3">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => setSelectedNotification(null)}
+              >
+                Close
+              </Button>
+              {(selectedNotification.projectId || selectedNotification.deploymentId) && (
+                <>
+                  {selectedNotification.projectId && (
+                    <Button 
+                      size="sm" 
+                      variant="default"
+                      onClick={() => { 
+                        router.push(`/dashboard/projects/${selectedNotification.projectId}`); 
+                        setSelectedNotification(null); 
+                      }}
+                    >
+                      View Project
+                    </Button>
+                  )}
+                  {selectedNotification.deploymentId && (
+                    <Button 
+                      size="sm" 
+                      variant="default"
+                      onClick={() => { 
+                        router.push(`/dashboard/compose/${selectedNotification.deploymentId}`); 
+                        setSelectedNotification(null); 
+                      }}
+                    >
+                      View Deployment
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
