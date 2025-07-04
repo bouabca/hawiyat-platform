@@ -14,7 +14,7 @@ import {
 
 export const sendDockerCleanupNotifications = async (
 	organizationId: string,
-	message = "Docker cleanup for dokploy",
+	message = "Hawiyat Notification System : Docker Cleanup",
 ) => {
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
@@ -42,7 +42,7 @@ export const sendDockerCleanupNotifications = async (
 
 			await sendEmailNotification(
 				email,
-				"Docker cleanup for dokploy",
+				"Hawiyat Notification System",
 				template,
 			);
 		}

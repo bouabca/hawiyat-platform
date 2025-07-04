@@ -58,7 +58,7 @@ export const sendBuildErrorNotifications = async ({
 					date: date.toLocaleString(),
 				}),
 			).catch();
-			await sendEmailNotification(email, "Build failed for dokploy", template);
+			await sendEmailNotification(email, "Hawiyat Notification System : Build Failed", template);
 		}
 
 		if (discord) {
@@ -110,7 +110,7 @@ export const sendBuildErrorNotifications = async ({
 				],
 				timestamp: date.toISOString(),
 				footer: {
-					text: "Dokploy Build Notification",
+					text: "Hawiyat Notification System",
 				},
 			});
 		}

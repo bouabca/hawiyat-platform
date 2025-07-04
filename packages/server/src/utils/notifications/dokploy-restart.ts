@@ -33,7 +33,7 @@ export const sendDokployRestartNotifications = async () => {
 			const template = await renderAsync(
 				DokployRestartEmail({ date: date.toLocaleString() }),
 			).catch();
-			await sendEmailNotification(email, "Dokploy Server Restarted", template);
+			await sendEmailNotification(email, "Hawiyat Notification System : Server Restarted", template);
 		}
 
 		if (discord) {
@@ -42,7 +42,7 @@ export const sendDokployRestartNotifications = async () => {
 
 			try {
 				await sendDiscordNotification(discord, {
-					title: decorate(">", "`✅` Dokploy Server Restarted"),
+					title: decorate(">", "`✅` Hawiyat Notification System : Server Restarted"),
 					color: 0x57f287,
 					fields: [
 						{
@@ -63,7 +63,7 @@ export const sendDokployRestartNotifications = async () => {
 					],
 					timestamp: date.toISOString(),
 					footer: {
-						text: "Dokploy Restart Notification",
+						text: "Hawiyat Notification System",
 					},
 				});
 			} catch (error) {
@@ -77,7 +77,7 @@ export const sendDokployRestartNotifications = async () => {
 			try {
 				await sendGotifyNotification(
 					gotify,
-					decorate("✅", "Dokploy Server Restarted"),
+					decorate("✅", "Hawiyat Notification System : Server Restarted"),
 					`${decorate("🕒", `Date: ${date.toLocaleString()}`)}`,
 				);
 			} catch (error) {
@@ -89,7 +89,7 @@ export const sendDokployRestartNotifications = async () => {
 			try {
 				await sendTelegramNotification(
 					telegram,
-					`<b>✅ Dokploy Server Restarted</b>\n\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
+					`<b>✅  Server Restarted</b>\n\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
 				);
 			} catch (error) {
 				console.log(error);
@@ -104,7 +104,7 @@ export const sendDokployRestartNotifications = async () => {
 					attachments: [
 						{
 							color: "#00FF00",
-							pretext: ":white_check_mark: *Dokploy Server Restarted*",
+							pretext: ":white_check_mark: *Hawiyat Notification System : Server Restarted*",
 							fields: [
 								{
 									title: "Time",

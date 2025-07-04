@@ -59,7 +59,7 @@ export const sendBuildSuccessNotifications = async ({
 					date: date.toLocaleString(),
 				}),
 			).catch();
-			await sendEmailNotification(email, "Build success for dokploy", template);
+			await sendEmailNotification(email, "Hawiyat Notification System : Build Success", template);
 		}
 
 		if (discord) {
@@ -107,7 +107,7 @@ export const sendBuildSuccessNotifications = async ({
 				],
 				timestamp: date.toISOString(),
 				footer: {
-					text: "Dokploy Build Notification",
+					text: "Hawiyat Notification System",
 				},
 			});
 		}
