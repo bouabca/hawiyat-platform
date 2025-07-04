@@ -15,7 +15,8 @@ import {
   ArrowRight,
   Loader2,
   UserPlus,
-  Server
+  Server,
+  ServerCog
 } from "lucide-react";
 
 
@@ -302,9 +303,10 @@ export const Summary = () => {
     return status === "running" || status === "active" || status === "started";
   }).length || 0;
   
+
   const failedServices = services?.filter((s: any) => {
     const status = s.applicationStatus || s.status || '';
-    return status === "failed" || status === "error" || status === "stopped";
+    return  status === "error" || status === "stopped";
   }).length || 0;
   const mostActiveProjects = projects?.slice(0, 8) || [];
 
@@ -417,12 +419,12 @@ export const Summary = () => {
               <Button
                 variant="outline"
                 className="h-24 flex-col gap-3 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-border/50 hover:border-primary/30"
-                onClick={() => router.push('/dashboard/compose')}
+                onClick={() => router.push('dashboard/settings/servers')}
               >
                 <div className="p-2 rounded-xl bg-blue-500/10">
-                  <Rocket className="h-5 w-5 text-blue-500" />
+                  <ServerCog className="h-5 w-5 text-blue-500" />
                 </div>
-                <span className="text-xs font-medium">Deploy Stack</span>
+                <span className="text-xs font-medium">Add Server</span>
               </Button>
               <Button
                 variant="outline"
@@ -741,6 +743,8 @@ export const Summary = () => {
                 <option value="slack">Slack</option>
                 <option value="email">Email</option>
                 <option value="telegram">Telegram</option>
+                <option value="discord">Discord</option>
+                <option value="gotify">Gotify</option>
               </select>
             </div>
             <div className="space-y-3">
