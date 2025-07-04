@@ -182,6 +182,8 @@ export const Summary = () => {
     stats: true, quickActions: true, topServices: true, projects: true, recentActivity: true, userActions: true
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Popup state for notification details
+  const [selectedNotification, setSelectedNotification] = useState<any | null>(null);
 
   // Computed values - Extract all services from projects
   const services = useMemo(() => {
@@ -348,11 +350,13 @@ export const Summary = () => {
   }, [refetchProjects, refetchNotifications]);
 
   const handleNotificationClick = useCallback((notification: any) => {
-    if (notification.projectId) {
-      router.push(`/dashboard/projects/${notification.projectId}`);
-    } else if (notification.deploymentId) {
-      router.push(`/dashboard/compose/${notification.deploymentId}`);
-    }
+    setSelectedNotification(notification);
+    // Optionally, you can still navigate if needed:
+    // if (notification.projectId) {
+    //   router.push(`/dashboard/projects/${notification.projectId}`);
+    // } else if (notification.deploymentId) {
+    //   router.push(`/dashboard/compose/${notification.deploymentId}`);
+    // }
   }, [router]);
 
 
@@ -795,6 +799,50 @@ export const Summary = () => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Popup */}
+      {selectedNotification && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-card rounded-2xl shadow-2xl p-6 max-w-md w-full relative animate-fade-in">
+            <button
+              className="absolute top-3 right-3 text-muted-foreground hover:text-primary transition-colors text-xl font-bold"
+              onClick={() => setSelectedNotification(null)}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <Bell className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-bold text-lg text-foreground">{selectedNotification.name || 'Notification'}</h2>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {selectedNotification.notificationType} • {new Date(selectedNotification.createdAt).toLocaleString()}
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 text-foreground text-sm whitespace-pre-line">
+              {selectedNotification.body || selectedNotification.content || 'No additional details.'}
+            </div>
+            {/* Optionally, show project or deployment links */}
+            {(selectedNotification.projectId || selectedNotification.deploymentId) && (
+              <div className="mt-4 flex gap-2">
+                {selectedNotification.projectId && (
+                  <Button size="sm" variant="outline" onClick={() => { router.push(`/dashboard/projects/${selectedNotification.projectId}`); setSelectedNotification(null); }}>
+                    View Project
+                  </Button>
+                )}
+                {selectedNotification.deploymentId && (
+                  <Button size="sm" variant="outline" onClick={() => { router.push(`/dashboard/compose/${selectedNotification.deploymentId}`); setSelectedNotification(null); }}>
+                    View Deployment
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
